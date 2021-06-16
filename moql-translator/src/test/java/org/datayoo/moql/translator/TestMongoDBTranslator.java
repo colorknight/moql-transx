@@ -106,6 +106,11 @@ public class TestMongoDBTranslator extends TestCase {
     testMongoDialect(sql);
   }
 
+  public void testCount2() {
+    String sql = "select count(ip.src) from ip3 ip";
+    testMongoDialect(sql);
+  }
+
   public void testSelectAll() {
     String sql = "select ip.* from ip3 ip ";
     testMongoDialect(sql);

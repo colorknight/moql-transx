@@ -42,6 +42,8 @@ public class MongoDBTranslator implements SqlTranslator {
 
   public final String JE_QUERY_COLLECTION = "queryCollection"; //
 
+  public final String JE_COUNT = "$count"; //
+
   public static final Set<String> exceptionFunctions = new HashSet();
 
   static {
@@ -144,7 +146,12 @@ public class MongoDBTranslator implements SqlTranslator {
   }
 
   protected void translate2Query(SelectorImpl selector, JsonArray jsonArray) {
-    translateProjectionClause(selector.getRecordSetOperator(), null, jsonArray);
+    if (isSelectCount(selector.getRecordSetOperator())) {
+      translateSelectCount(jsonArray);
+    } else {
+      translateProjectionClause(selector.getRecordSetOperator(), null,
+          jsonArray);
+    }
     if (selector.getWhere() != null) {
       translateWhereClause(selector.getWhere(), jsonArray);
     }
@@ -154,6 +161,24 @@ public class MongoDBTranslator implements SqlTranslator {
     if (selector.getLimit() != null) {
       translateLimitClause(selector.getLimit(), jsonArray);
     }
+  }
+
+  protected boolean isSelectCount(RecordSetOperator recordSetOperator) {
+    Columns columns = recordSetOperator.getColumns();
+    if (columns.getColumns().size() == 1) {
+      Column column = columns.getColumns().get(0);
+      if (column.getOperand() instanceof Function) {
+        if (column.getOperand().getName().equals("count"))
+          return true;
+      }
+    }
+    return false;
+  }
+
+  protected void translateSelectCount(JsonArray jsonArray) {
+    JsonObject jo = new JsonObject();
+    jo.add(JE_COUNT, new JsonObject());
+    jsonArray.add(jo);
   }
 
   protected void translateProjectionClause(RecordSetOperator recordSetOperator,
@@ -166,6 +191,10 @@ public class MongoDBTranslator implements SqlTranslator {
       if (column.getOperand() instanceof ColumnSelectorOperand)
         throw new UnsupportedOperationException(
             "Unsupported nested selector in select clause!");
+      if (column.getOperand() instanceof Function) {
+        throw new UnsupportedOperationException(
+            "Unsupported function in select clause!");
+      }
       if (leftJoinTableAlias != null) {
         if (isLeftJoinProjection(column.getColumnMetadata(),
             leftJoinTableAlias))
