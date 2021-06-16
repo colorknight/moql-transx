@@ -101,6 +101,16 @@ public class TestMongoDBTranslator extends TestCase {
     testMongoDialect(sql);
   }
 
+  public void testCount() {
+    String sql = "select ip.src, ip.proto, count(ip.src) from ip3 ip group by ip.src, ip.proto ";
+    testMongoDialect(sql);
+  }
+
+  public void testSelectAll() {
+    String sql = "select ip.* from ip3 ip ";
+    testMongoDialect(sql);
+  }
+
   protected void testMongoDialect(String sql) {
     try {
       String mongodb = MoqlTranslator

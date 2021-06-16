@@ -27,6 +27,7 @@ import org.datayoo.moql.operand.expression.member.MemberVariableExpression;
 import org.datayoo.moql.operand.expression.relation.*;
 import org.datayoo.moql.operand.function.AbstractFunction;
 import org.datayoo.moql.operand.function.Function;
+import org.datayoo.moql.operand.function.factory.FunctionFactory;
 import org.datayoo.moql.operand.selector.ColumnSelectorOperand;
 import org.datayoo.moql.operand.variable.Variable;
 import org.datayoo.moql.sql.FunctionTranslator;
@@ -132,11 +133,11 @@ public class MongoDBTranslator implements SqlTranslator {
     String tableName = null;
     if (tables.getQueryable() instanceof Table) {
       Table table = (Table) tables.getQueryable();
-      tableName = table.getTableMetadata().getName();
+      tableName = table.getTableMetadata().getValue();
     } else {
       Join join = (Join) tables.getQueryable();
       tableName = ((Table) join.getLeftQueryable()).getTableMetadata()
-          .getName();
+          .getValue();
     }
     JsonPrimitive jp = new JsonPrimitive(tableName);
     putObject(jsonArray, JE_QUERY_COLLECTION, jp);
@@ -335,8 +336,13 @@ public class MongoDBTranslator implements SqlTranslator {
     for (int i = 0; i < columns.length; i++) {
       if (columns[i] == null)
         continue;
+      AbstractFunction function = (AbstractFunction) columns[i].getOperand();
       JsonObject func = new JsonObject();
-      translateFunction((AbstractFunction) columns[i].getOperand(), func);
+      if (!isCountFunction(function)) {
+        translateFunction((AbstractFunction) columns[i].getOperand(), func);
+      } else {
+        translateCountFunction(func);
+      }
       group.add(getFieldName(columns[i].getColumnMetadata().getName()), func);
     }
     putObject(jsonArray, "$group", group);
@@ -350,6 +356,16 @@ public class MongoDBTranslator implements SqlTranslator {
           translateUnaryOperand(columns[i].getOperand()));
     }
     group.add("_id", jo);
+  }
+
+  protected boolean isCountFunction(Function function) {
+    if (function.getName().equals("count"))
+      return true;
+    return false;
+  }
+
+  protected void translateCountFunction(JsonObject func) {
+    func.addProperty("$sum", 1);
   }
 
   protected void putObject(JsonElement jsonElement, String name,
@@ -581,9 +597,7 @@ public class MongoDBTranslator implements SqlTranslator {
         .translatePattern2Regex(rOperand.operate(null).toString()));
     JsonElement je = regex.get("$regex");
     StringBuilder sbud = new StringBuilder();
-    sbud.append("/");
     sbud.append(je.getAsString());
-    sbud.append("/");
     regex.addProperty("$regex", sbud.toString());
     putObject(jsonElement, getFieldName(lOperand.getName()), regex);
   }
@@ -624,7 +638,7 @@ public class MongoDBTranslator implements SqlTranslator {
     MongoFunctionTranslator functionTranslator = functionTranslators
         .get(function.getName());
     if (functionTranslator == null) {
-      if (function.getParameterCount() == 1) {
+      if (function.getParameters().size() == 1) {
         JsonElement je = translateUnaryOperand(function.getParameters().get(0));
         putObject(jsonObject, "$" + function.getName(), je);
       } else {
