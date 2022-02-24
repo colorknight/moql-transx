@@ -47,6 +47,8 @@ public abstract class SqlTranslatorHelper {
 
   public static MongoDBTranslator mongoDBTranslator;
 
+  public static DynamodbTranslator dynamodbTranslator;
+
   public static String translate2Sql(Selector selector,
       SqlDialectType dialectType) {
     return translate2Sql(selector, dialectType, new HashMap<String, Object>());
@@ -71,6 +73,8 @@ public abstract class SqlTranslatorHelper {
       sqlTranslator = getElasticSearchTranslator();
     } else if (dialectType.equals(SqlDialectType.MONGODB)) {
       sqlTranslator = getMongoDBTranslator();
+    } else if (dialectType.equals(SqlDialectType.DYNAMODB)) {
+      sqlTranslator = getDynamodbTranslator();
     } else {
       throw new UnsupportedOperationException();
     }
@@ -158,5 +162,12 @@ public abstract class SqlTranslatorHelper {
       mongoDBTranslator = new MongoDBTranslator();
     }
     return mongoDBTranslator;
+  }
+
+  protected static synchronized DynamodbTranslator getDynamodbTranslator() {
+    if (dynamodbTranslator == null) {
+      dynamodbTranslator = new DynamodbTranslator();
+    }
+    return dynamodbTranslator;
   }
 }

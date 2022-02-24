@@ -11,13 +11,13 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.datayoo.moql.*;
 import org.datayoo.moql.core.RecordSetImpl;
-import org.datayoo.moql.core.RecordSetMetadata;
 import org.datayoo.moql.metadata.*;
 import org.datayoo.moql.operand.OperandFactory;
 import org.datayoo.moql.operand.factory.OperandFactoryImpl;
 import org.datayoo.moql.parser.MoqlParser;
 import org.datayoo.moql.querier.DataQuerier;
 import org.datayoo.moql.querier.SupplementReader;
+import org.datayoo.moql.querier.util.SelectorDefinitionUtils;
 import org.datayoo.moql.sql.SqlDialectType;
 import org.datayoo.moql.translator.MoqlTranslator;
 import org.datayoo.moql.util.StringFormater;
@@ -27,7 +27,8 @@ import java.util.*;
 
 public class EsDataQuerier implements DataQuerier {
 
-  public static String HTTP_PORT = "http.port";
+  public static String PROP_HTTP_PORT = "elasticsearch.port";
+  public static String PROP_ES_SVC_URL = "elasticsearch.serviceUrl";
 
   public static String DOC_COUNT = "doc_count";
 
@@ -37,22 +38,24 @@ public class EsDataQuerier implements DataQuerier {
 
   protected CloseableHttpClient httpClient;
 
-  protected OperandFactory operandFactory = OperandFactoryImpl
-      .createOperandFactory();
+  protected OperandFactory operandFactory = new OperandFactoryImpl();
 
   @Override
   public synchronized void connect(String[] serverIps, Properties properties)
       throws IOException {
+    if (httpClient != null)
+      return;
     Validate.notEmpty(serverIps, "serverIps is empty!");
     int port = 9200;
     if (properties != null) {
-      Object obj = properties.get(HTTP_PORT);
+      Object obj = properties.get(PROP_HTTP_PORT);
       if (obj != null)
         port = Integer.valueOf(obj.toString());
     }
-
-    esServiceUrl = StringFormater.format("http://{}:{}", serverIps[0], port);
-
+    esServiceUrl = properties.getProperty(PROP_ES_SVC_URL);
+    if (esServiceUrl == null) {
+      esServiceUrl = StringFormater.format("http://{}:{}", serverIps[0], port);
+    }
     httpClient = HttpClients.createDefault();
   }
 
@@ -199,7 +202,8 @@ public class EsDataQuerier implements DataQuerier {
 
   protected RecordSet toQueryRecordSet(JsonObject jsonObject,
       SelectorDefinition selectorDefinition) {
-    RecordSetImpl recordSet = createRecordSet(selectorDefinition);
+    RecordSetImpl recordSet = SelectorDefinitionUtils
+        .createRecordSet(selectorDefinition);
     Operand[] operands = buildColumnOperands(selectorDefinition);
     JsonArray hitArray = jsonObject.getAsJsonArray("hits");
     List<Object[]> records = recordSet.getRecords();
@@ -214,7 +218,8 @@ public class EsDataQuerier implements DataQuerier {
 
   protected RecordSet toAggregationRecordSet(JsonObject jsonObject,
       SelectorDefinition selectorDefinition) {
-    RecordSetImpl recordSet = createRecordSet(selectorDefinition);
+    RecordSetImpl recordSet = SelectorDefinitionUtils
+        .createRecordSet(selectorDefinition);
     Operand[] operands = buildColumnOperands(selectorDefinition);
 
     List<Object[]> records = recordSet.getRecords();
@@ -225,38 +230,6 @@ public class EsDataQuerier implements DataQuerier {
       records.add(record);
     }
     return recordSet;
-  }
-
-  protected RecordSetImpl createRecordSet(
-      SelectorDefinition selectorDefinition) {
-    SelectorMetadata selectorMetadata = (SelectorMetadata) selectorDefinition;
-    List<ColumnDefinition> columns = new LinkedList<ColumnDefinition>();
-    for (ColumnMetadata columnMetadata : selectorMetadata.getColumns()
-        .getColumns()) {
-      columns.add(columnMetadata);
-    }
-    List<ColumnDefinition> groupColumns = new LinkedList<ColumnDefinition>();
-    if (selectorMetadata.getGroupBy() != null) {
-      for (GroupMetadata groupMetadata : selectorMetadata.getGroupBy()) {
-        ColumnDefinition columnDefinition = getColumnDefinition(
-            groupMetadata.getColumn(), columns);
-        groupColumns.add(columnDefinition);
-      }
-    }
-    RecordSetMetadata recordSetMetadata = new RecordSetMetadata(columns,
-        groupColumns);
-    return new RecordSetImpl(recordSetMetadata, new Date(), new Date(),
-        new LinkedList<Object[]>());
-  }
-
-  protected ColumnDefinition getColumnDefinition(String name,
-      List<ColumnDefinition> columns) {
-    for (ColumnDefinition columnDefinition : columns) {
-      if (name.equals(columnDefinition.getName()))
-        return columnDefinition;
-    }
-    throw new IllegalArgumentException(
-        StringFormater.format("Invalid group column name '{}'!", name));
   }
 
   protected Operand[] buildColumnOperands(

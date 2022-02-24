@@ -29,5 +29,6 @@ public enum SqlDialectType {
 	MYSQL,
 	POSTGRESQL,
 	ELASTICSEARCH,
-	MONGODB
+	MONGODB,
+	DYNAMODB
 }

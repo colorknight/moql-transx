@@ -8,7 +8,7 @@ import org.datayoo.moql.translator.query.Process;
 public class TestMongoDBTranslator extends TestCase {
   // 1
   public void testSimpleQuery() {
-    String sql = "select w.item, w.name from web w";
+    String sql = "select w.item, w.name from db.web w";
     testMongoDialect(sql);
   }
 

@@ -3,10 +3,7 @@ package org.datayoo.moql.sql.mongodb;
 import com.google.gson.*;
 import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.apache.commons.lang3.Validate;
-import org.datayoo.moql.Filter;
-import org.datayoo.moql.MoqlTranslationException;
-import org.datayoo.moql.Operand;
-import org.datayoo.moql.Selector;
+import org.datayoo.moql.*;
 import org.datayoo.moql.core.*;
 import org.datayoo.moql.core.group.GroupRecordSetOperator;
 import org.datayoo.moql.core.join.LeftJoin;
@@ -38,11 +35,11 @@ import java.util.*;
 
 public class MongoDBTranslator implements SqlTranslator {
   // Json Element
-  public final String JE_QUERY_TYPE = "queryType"; // find,aggregate
+  public static final String JE_QUERY_TYPE = "queryType"; // find,aggregate
 
-  public final String JE_QUERY_COLLECTION = "queryCollection"; //
+  public static final String JE_QUERY_COLLECTION = "queryCollection"; //
 
-  public final String JE_COUNT = "$count"; //
+  public static final String JE_COUNT = "$count"; //
 
   public static final Set<String> exceptionFunctions = new HashSet();
 
@@ -234,8 +231,7 @@ public class MongoDBTranslator implements SqlTranslator {
 
   protected boolean isSelectAll(RecordSetOperator recordSetOperator) {
     Columns columns = recordSetOperator.getColumns();
-    if (columns.getColumns().size() == 1) {
-      Column column = columns.getColumns().get(0);
+    for (Column column : columns.getColumns()) {
       String value = column.getColumnMetadata().getValue();
       if (value.endsWith(".*"))
         return true;
@@ -623,7 +619,7 @@ public class MongoDBTranslator implements SqlTranslator {
       JsonElement jsonElement) {
     JsonObject regex = new JsonObject();
     regex.addProperty("$regex", LikeExpression
-        .translatePattern2Regex(rOperand.operate(null).toString()));
+        .translatePattern2Regex(rOperand.operate((EntityMap) null).toString()));
     JsonElement je = regex.get("$regex");
     StringBuilder sbud = new StringBuilder();
     sbud.append(je.getAsString());
