@@ -45,6 +45,15 @@ public class MongodbQuerier implements DataQuerier {
 
   protected OperandFactory operandFactory = new OperandFactoryImpl();
 
+  public MongodbQuerier() {
+
+  }
+
+  public MongodbQuerier(MongoClient mongoClient) {
+    Validate.notNull(mongoClient, "mongoClient is null!");
+    this.mongoClient = mongoClient;
+  }
+
   @Override
   public void connect(String[] serverIps, Properties properties)
       throws IOException {
