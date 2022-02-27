@@ -21,8 +21,8 @@ public class TestMongoDBTranslator extends TestCase {
   // 3
   public void testConditionQuery2() {
     String sql =
-        "select w.dns, w.ip from web w where (w.port=443 or w.port=8080) and "
-            + "w.ip='127.0.0.1' or w.ip='127.0.0.2'";
+        "select w.dns, w.ip from db.web w where (w.port=443 or w.port=8080) and "
+            + "w.ip='127.0.0.1' or w.ip='127.0.0.2' order by w.ip desc limit 2";
     testMongoDialect(sql);
   }
 
