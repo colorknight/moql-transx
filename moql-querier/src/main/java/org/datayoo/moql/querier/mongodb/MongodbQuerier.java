@@ -1,18 +1,14 @@
 package org.datayoo.moql.querier.mongodb;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import com.mongodb.client.*;
 import org.apache.commons.lang3.Validate;
 import org.bson.BsonDocument;
+import org.bson.BsonString;
+import org.bson.BsonValue;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.datayoo.moql.ColumnDefinition;
-import org.datayoo.moql.MoqlException;
-import org.datayoo.moql.RecordSet;
-import org.datayoo.moql.SelectorDefinition;
+import org.datayoo.moql.*;
 import org.datayoo.moql.core.RecordSetImpl;
 import org.datayoo.moql.core.RecordSetMetadata;
 import org.datayoo.moql.metadata.ColumnMetadata;
@@ -149,6 +145,10 @@ public class MongodbQuerier implements DataQuerier {
   protected RecordSet query(MongoCollection mongoCollection,
       Map<String, JsonElement> clauseMap,
       SelectorDefinition selectorDefinition) {
+    if (clauseMap.get("$count") != null) {
+      return count(mongoCollection, clauseMap,
+          (SelectorMetadata) selectorDefinition);
+    }
     JsonElement je = clauseMap.get("$match");
     FindIterable findIterable;
     if (je != null) {
@@ -175,8 +175,27 @@ public class MongodbQuerier implements DataQuerier {
     return toRecordSet(findIterable, (SelectorMetadata) selectorDefinition);
   }
 
+  protected RecordSet count(MongoCollection mongoCollection,
+      Map<String, JsonElement> clauseMap, SelectorMetadata selectorMetadata) {
+    JsonElement je = clauseMap.get("$match");
+    RecordSet recordSet = SelectorDefinitionUtils
+        .createRecordSetWithoutTablePrefix(selectorMetadata);
+    long count = 0;
+    if (je == null) {
+      count = mongoCollection.estimatedDocumentCount();
+    } else {
+      count = mongoCollection.countDocuments(toBson(je));
+    }
+    Object[] row = new Object[1];
+    row[0] = count;
+    recordSet.getRecords().add(row);
+    return recordSet;
+  }
+
   protected Bson toBson(JsonElement jsonElement) {
-    return BsonDocument.parse(jsonElement.toString());
+    MongoJsonWriter jsonWriter = new MongoJsonWriter();
+    new GsonBuilder().serializeNulls().create().toJson(jsonElement, jsonWriter);
+    return BsonDocument.parse(jsonWriter.toString());
   }
 
   protected RecordSet toRecordSet(MongoIterable mongoIterable,
@@ -224,10 +243,28 @@ public class MongodbQuerier implements DataQuerier {
       List<ColumnDefinition> columnDefinitions) {
     Object[] record = new Object[columnDefinitions.size()];
     int i = 0;
+    Map<String, Object> docMap = doc2Map(doc);
     for (ColumnDefinition columnDefinition : columnDefinitions) {
-      record[i++] = doc.get(columnDefinition.getName());
+      record[i++] = docMap.get(columnDefinition.getName());
     }
     return record;
+  }
+
+  protected Map<String, Object> doc2Map(Document doc) {
+    Map<String, Object> docMap = new HashMap<>();
+    for (Map.Entry<String, Object> entry : doc.entrySet()) {
+      if (entry.getKey().equals("_id")) {
+        if (entry.getValue() instanceof Document) {
+          Document ids = (Document) entry.getValue();
+          for (Map.Entry<String, Object> id : ids.entrySet()) {
+            docMap.put(id.getKey(), id.getValue());
+          }
+          continue;
+        }
+      }
+      docMap.put(entry.getKey(), entry.getValue());
+    }
+    return docMap;
   }
 
   protected RecordSet aggregate(MongoCollection mongoCollection,

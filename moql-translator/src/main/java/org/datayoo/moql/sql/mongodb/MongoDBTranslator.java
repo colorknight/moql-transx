@@ -1,7 +1,6 @@
 package org.datayoo.moql.sql.mongodb;
 
 import com.google.gson.*;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.apache.commons.lang3.Validate;
 import org.datayoo.moql.*;
 import org.datayoo.moql.core.*;
@@ -24,7 +23,6 @@ import org.datayoo.moql.operand.expression.member.MemberVariableExpression;
 import org.datayoo.moql.operand.expression.relation.*;
 import org.datayoo.moql.operand.function.AbstractFunction;
 import org.datayoo.moql.operand.function.Function;
-import org.datayoo.moql.operand.function.factory.FunctionFactory;
 import org.datayoo.moql.operand.selector.ColumnSelectorOperand;
 import org.datayoo.moql.operand.variable.Variable;
 import org.datayoo.moql.sql.FunctionTranslator;

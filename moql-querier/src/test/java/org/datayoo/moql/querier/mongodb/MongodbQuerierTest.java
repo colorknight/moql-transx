@@ -5,6 +5,8 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import junit.framework.TestCase;
+import org.bson.BsonDocument;
+import org.bson.conversions.Bson;
 import org.datayoo.moql.ColumnDefinition;
 import org.datayoo.moql.RecordSet;
 import org.datayoo.moql.RecordSetDefinition;
@@ -108,7 +110,7 @@ public class MongodbQuerierTest extends TestCase {
 
   // 5 ?
   public void testHaving() {
-    String sql = "select ip.src, ip.proto, max(ip.sport) sport, min(ip.sport) from ip3 ip where ip.ip is not null group by ip.src, ip.sport having ip.sport < 1000";
+    String sql = "select ip.src, ip.proto, max(ip.sport) sport, min(ip.sport) from mydb.ip3 ip group by ip.src, ip.proto having sport > 2";
     queryAndOutput(sql);
   }
 
@@ -156,6 +158,14 @@ public class MongodbQuerierTest extends TestCase {
     queryAndOutput(sql);
   }
 
+  // 12-2
+  public void testIsConditionQuery2() {
+    String sql = "select ip.src, ip.proto from mydb.ip3 ip where ip.src is null";
+    queryAndOutput(sql);
+    sql = "select ip.src, ip.proto from mydb.ip3 ip where ip.src is not null";
+    queryAndOutput(sql);
+  }
+
   // 13
   public void testParenConditionQuery() {
     String sql = "select w.dns, w.ip  from mydb.web w where w.region is null and (w.port = 88 or w.port = 443)";
@@ -176,7 +186,9 @@ public class MongodbQuerierTest extends TestCase {
 
   // 16 ?
   public void testDateQuery() {
-    String sql = "select w.dns, w.ip from mydb.w w where w.createTime > ISODate('2019-09-18T09:54:00.000Z')";
+    String sql = "select w.dns, w.ip, w.time from mydb.w w where w.time is not null)";
+    queryAndOutput(sql);
+    sql = "select w.dns, w.ip from mydb.w w where w.time > ISODate('2018-09-18T09:54:00Z')";
     queryAndOutput(sql);
   }
 
@@ -205,7 +217,8 @@ public class MongodbQuerierTest extends TestCase {
   }
 
   protected void outputRecordSet(RecordSet recordSet) {
-    RecordSetDefinition recordSetDefinition = recordSet.getRecordSetDefinition();
+    RecordSetDefinition recordSetDefinition = recordSet
+        .getRecordSetDefinition();
     StringBuffer sbuf = new StringBuffer();
     for (ColumnDefinition column : recordSetDefinition.getColumns()) {
       sbuf.append(column.getName());
@@ -235,4 +248,5 @@ public class MongodbQuerierTest extends TestCase {
       e.printStackTrace();
     }
   }
+
 }
