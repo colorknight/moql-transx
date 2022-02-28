@@ -5,8 +5,6 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import junit.framework.TestCase;
-import org.bson.BsonDocument;
-import org.bson.conversions.Bson;
 import org.datayoo.moql.ColumnDefinition;
 import org.datayoo.moql.RecordSet;
 import org.datayoo.moql.RecordSetDefinition;
@@ -14,9 +12,9 @@ import org.datayoo.moql.RecordSetDefinition;
 import java.io.IOException;
 import java.util.Properties;
 
-public class MongodbQuerierTest extends TestCase {
+public class MongoDBQuerierTest extends TestCase {
 
-  protected MongodbQuerier dataQuerier = new MongodbQuerier();
+  protected MongoDBQuerier dataQuerier = new MongoDBQuerier();
 
   @Override
   public void setUp() throws Exception {

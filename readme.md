@@ -179,7 +179,7 @@ try {
 
 ## 用SQL访问MongoDB
 
-​	MOQL-Transx提供了一个轻量级的访问MongoDB数据库的解决方案，并不需要安装额外的数据库引擎。与MOQL-Transx提供的用SQL访问ElasticSearch数据库的解决方案一样。该解决方案首先将SQL语法映射为MongoDB的DSL，然后又提供了查询器执行DSL并将查询结果以二维表结构的形式返回。由于MongoDB不像ElasticSearch，其有一个完整的DSL。其语法由多个语法片段组成，这些语法片段需要作为参数传入不同的api才能完成一次完整意义的查询语义。由于我们无法抽象描述这种片段+API调用的带有交互的逻辑，故在做这种语义翻译时，参考MongoDB中，aggregate计算的片段语法结构，设计了一个能够基本完成SQL语义映射的伪MongoDB DSL。使用者可以不必了解该DSL，直接使用moql-querier中提供的MongodbQuerier直接访问MongoDB数据库。
+​	MOQL-Transx提供了一个轻量级的访问MongoDB数据库的解决方案，并不需要安装额外的数据库引擎。与MOQL-Transx提供的用SQL访问ElasticSearch数据库的解决方案一样。该解决方案首先将SQL语法映射为MongoDB的DSL，然后又提供了查询器执行DSL并将查询结果以二维表结构的形式返回。由于MongoDB不像ElasticSearch，其有一个完整的DSL。其语法由多个语法片段组成，这些语法片段需要作为参数传入不同的api才能完成一次完整意义的查询语义。由于我们无法抽象描述这种片段+API调用的带有交互的逻辑，故在做这种语义翻译时，参考MongoDB中，aggregate计算的片段语法结构，设计了一个能够基本完成SQL语义映射的伪MongoDB DSL。使用者可以不必了解该DSL，直接使用moql-querier中提供的MongoDBQuerier直接访问MongoDB数据库。
 
 ​	下面是一个使用MongoDBTranslator将SQL转换为MongoDB伪DSL的例子，可以帮助使用者大致了解MOQL-Transx如何设计实现了SQL到MongoDB的语法映射。
 
@@ -249,7 +249,7 @@ select w.dns, w.ip from db.web w where (w.port=443 or w.port=8080) and w.ip='127
 ]
 ```
 
-​	queryType标签表示了检索类型，该值只有find和aggregate两个值，分别对应MongoCollection的find和aggregate方法。queryCollection对应需要检索的集合。\$match,\$sort , \$limit标签则是借鉴MongoDb的aggregate语法结构，将其移植到find方法的调用上了。MongodbQuerier将解释该DSL，将其拆解成多个语法片段，而后调用MongoCollection提供的不同的功能接口，完成文档的检索，并最终将文档转换为二维表形式返回。
+​	queryType标签表示了检索类型，该值只有find和aggregate两个值，分别对应MongoCollection的find和aggregate方法。queryCollection对应需要检索的集合。\$match,\$sort , \$limit标签则是借鉴MongoDb的aggregate语法结构，将其移植到find方法的调用上了。MongoDBQuerier将解释该DSL，将其拆解成多个语法片段，而后调用MongoCollection提供的不同的功能接口，完成文档的检索，并最终将文档转换为二维表形式返回。
 
 ​	下表将给出SQL子句到MongoDB DSL的映射，使用者可根据表中所列的子句能力编写SQL访问MongoDB。
 
@@ -276,10 +276,10 @@ select w.dns, w.ip from db.web w where (w.port=443 or w.port=8080) and w.ip='127
 | LIMIT子句                                             | 映射为$limit, limit子句的偏移部分被映射为\$skip              |
 | ORDER子句                                             | 映射为$sort                                                  |
 
-​	由于MongoDB实际没有DSL，所以MOQL-Transx提供的这层转换不具有通用性，故MOQL-Transx提供了MongodbQuerier来提供更加通用的用法。使用方法如下，非常简单：
+​	由于MongoDB实际没有DSL，所以MOQL-Transx提供的这层转换不具有通用性，故MOQL-Transx提供了MongoDBQuerier来提供更加通用的用法。使用方法如下，非常简单：
 
 ```
-MongodbQuerier dataQuerier = new MongodbQuerier();
+MongoDBQuerier dataQuerier = new MongoDBQuerier();
 String[] serverIps = new String[] { "172.30.30.8" };
 Properties properties = new Properties();
 dataQuerier.connect(serverIps, properties);

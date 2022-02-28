@@ -27,7 +27,7 @@ import org.datayoo.moql.util.StringFormater;
 import java.io.IOException;
 import java.util.*;
 
-public class MongodbQuerier implements DataQuerier {
+public class MongoDBQuerier implements DataQuerier {
 
   public static String PROP_MONGO_PORT = "mongodb.port";
   public static String PROP_MONGO_DATABASE = "mongodb.database";
@@ -41,11 +41,11 @@ public class MongodbQuerier implements DataQuerier {
 
   protected OperandFactory operandFactory = new OperandFactoryImpl();
 
-  public MongodbQuerier() {
+  public MongoDBQuerier() {
 
   }
 
-  public MongodbQuerier(MongoClient mongoClient) {
+  public MongoDBQuerier(MongoClient mongoClient) {
     Validate.notNull(mongoClient, "mongoClient is null!");
     this.mongoClient = mongoClient;
   }
