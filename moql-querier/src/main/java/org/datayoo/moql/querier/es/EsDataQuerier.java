@@ -40,6 +40,11 @@ public class EsDataQuerier implements DataQuerier {
 
   protected OperandFactory operandFactory = new OperandFactoryImpl();
 
+  public synchronized void bind(CloseableHttpClient httpClient) {
+    Validate.notNull(httpClient, "httpClient is null!");
+    this.httpClient = httpClient;
+  }
+
   @Override
   public synchronized void connect(String[] serverIps, Properties properties)
       throws IOException {
