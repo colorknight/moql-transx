@@ -15,7 +15,8 @@ public class EsDataQuerierTest extends TestCase {
   @Override
   public void setUp() throws Exception {
     //    String[] serverIps = new String[] {"172.21.5.221"};
-    String[] serverIps = new String[] { "127.0.0.1" };
+    String[] serverIps = new String[]{"sq-psmg-storage02", "sq-psmg-storage03"
+        , "sq-psmg-storage04"};
     Properties properties = new Properties();
     //properties.put(EsDataQuerier.HTTP_PORT, 9200);
     //    properties.put(EsDataQuerierOld.CLUSTER_NAME, "bdp-test");
@@ -31,7 +32,7 @@ public class EsDataQuerierTest extends TestCase {
   }
 
   public void testCommonQuery() {
-    String sql = "select ip.fw, ip.pri, ip.recorder, ip.proto from ip3 ip where ip.pri = 6 order by ip.src LIMIT 1000";
+    String sql = "select sv.domain, sv.ip, sv.port from savior_data sv LIMIT 20";
     try {
       RecordSet recordSet = dataQuerier.query(sql);
       outputRecordSet(recordSet);
@@ -41,7 +42,8 @@ public class EsDataQuerierTest extends TestCase {
   }
 
   public void testCommonQuery2() {
-    String sql = "select t.DVC_ADDRESS, t.MESSAGE from ins_test t order by t.SEVERITY LIMIT 5";
+    String sql = "select t.DVC_ADDRESS, t.MESSAGE from ins_test t order by t" +
+        ".SEVERITY LIMIT 5";
     try {
       CommonSupplementReader supplementReader = new CommonSupplementReader();
       RecordSet recordSet = dataQuerier.query(sql, supplementReader);
@@ -53,7 +55,8 @@ public class EsDataQuerierTest extends TestCase {
   }
 
   public void testGroupQuery() {
-    String sql = "select ip.src, ip.proto, max(ip.sport), min(ip.sport) from ip3 ip group by ip.src, ip.proto order by ip.src desc limit 2 ";
+    String sql = "select ip.src, ip.proto, max(ip.sport), min(ip.sport) from " +
+        "ip3 ip group by ip.src, ip.proto order by ip.src desc limit 2 ";
     try {
       RecordSet recordSet = dataQuerier.query(sql);
       outputRecordSet(recordSet);
@@ -63,7 +66,9 @@ public class EsDataQuerierTest extends TestCase {
   }
 
   public void testGroupQuery2() {
-    String sql = "select ip.src, ip.proto, count(ip.sport) cnt, count(ip.sport, true), max(ip.sport), min(ip.sport) from ip3 ip group by ip.src, ip.proto order by ip.src desc limit 2 ";
+    String sql = "select ip.src, ip.proto, count(ip.sport) cnt, count(ip" +
+        ".sport, true), max(ip.sport), min(ip.sport) from ip3 ip group by ip" +
+        ".src, ip.proto order by ip.src desc limit 2 ";
     try {
       RecordSet recordSet = dataQuerier.query(sql);
       outputRecordSet(recordSet);
@@ -73,7 +78,9 @@ public class EsDataQuerierTest extends TestCase {
   }
 
   public void testGroupQuery3() {
-    String sql = "select t.SEVERITY,t.DVC_RECEIPT_TIME, count(t.MESSAGE) from ins_test t group by t.SEVERITY, t.DVC_RECEIPT_TIME order by t.SEVERITY LIMIT 5";
+    String sql = "select t.SEVERITY,t.DVC_RECEIPT_TIME, count(t.MESSAGE) from" +
+        " ins_test t group by t.SEVERITY, t.DVC_RECEIPT_TIME order by t" +
+        ".SEVERITY LIMIT 5";
     try {
       RecordSet recordSet = dataQuerier.query(sql);
       outputRecordSet(recordSet);
