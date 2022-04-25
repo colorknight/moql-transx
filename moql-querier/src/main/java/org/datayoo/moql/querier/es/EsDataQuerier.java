@@ -39,12 +39,9 @@ public class EsDataQuerier implements DataQuerier {
 
   public static final String SCHEME = "http";
 
-//  protected String esServiceUrl;
-
   protected int maxResultWindow = 10000;
 
   protected RestClient httpClient;
-//  protected CloseableHttpClient httpClient;
 
   protected OperandFactory operandFactory = new OperandFactoryImpl();
 
@@ -56,25 +53,14 @@ public class EsDataQuerier implements DataQuerier {
   @Override
   public synchronized void connect(String[] serverIps, Properties properties)
       throws IOException {
-//    if (httpClient != null)
-//      return;
-//    Validate.notEmpty(serverIps, "serverIps is empty!");
-//    int port = 9200;
-//    if (properties != null) {
-//      Object obj = properties.get(PROP_HTTP_PORT);
-//      if (obj != null)
-//        port = Integer.valueOf(obj.toString());
-//    }
-//    esServiceUrl = properties.getProperty(PROP_ES_SVC_URL);
-//    if (esServiceUrl == null) {
-//      esServiceUrl = StringFormater.format("http://{}:{}", serverIps[0],
-//      port);
-//    }
-//    httpClient = HttpClients.createDefault();
-
     if (httpClient != null)
       return;
     int port = 9200;
+    if (properties != null) {
+      Object obj = properties.get(PROP_HTTP_PORT);
+      if (obj != null)
+        port = Integer.valueOf(obj.toString());
+    }
 
     HttpHost[] httpHosts = new HttpHost[serverIps.length];
     for (int i = 0; i < serverIps.length; i++) {
@@ -111,7 +97,7 @@ public class EsDataQuerier implements DataQuerier {
 
   @Override
   public RecordSet query(String sql, Properties queryProps,
-                         SupplementReader supplementReader) throws IOException {
+      SupplementReader supplementReader) throws IOException {
     Validate.notEmpty(sql, "sql is empty!");
     if (queryProps == null) {
       queryProps = new Properties();
@@ -121,9 +107,9 @@ public class EsDataQuerier implements DataQuerier {
       List<String> indexAndTables = getIndexAndTables(selectorDefinition);
       String query = MoqlTranslator.translateMetadata2Sql(selectorDefinition,
           SqlDialectType.ELASTICSEARCH);
-//      String queryUrl = makeQueryUrl(indexAndTables, queryProps);
-//      HttpResponse response = query(queryUrl, query);
-//      String data = EntityUtils.toString(response.getEntity());
+      //      String queryUrl = makeQueryUrl(indexAndTables, queryProps);
+      //      HttpResponse response = query(queryUrl, query);
+      //      String data = EntityUtils.toString(response.getEntity());
       String queryUrl = makeQueryUrl(indexAndTables, queryProps);
       Response response = query(queryUrl, query);
       String data = EntityUtils.toString(response.getEntity());
@@ -146,7 +132,7 @@ public class EsDataQuerier implements DataQuerier {
       TableMetadata tableMetadata = (TableMetadata) qm;
       String[] segs = tableMetadata.getValue().split(".");
       if (segs.length == 0) {
-        segs = new String[]{tableMetadata.getValue()};
+        segs = new String[] { tableMetadata.getValue() };
       }
       if (indexAndTables.size() == 0) {
         indexAndTables.add(segs[0]);
@@ -165,9 +151,9 @@ public class EsDataQuerier implements DataQuerier {
   }
 
   protected String makeQueryUrl(List<String> indexAndTables,
-                                Properties queryProps) {
+      Properties queryProps) {
     StringBuffer sbuf = new StringBuffer();
-//    sbuf.append(esServiceUrl);
+    //    sbuf.append(esServiceUrl);
     sbuf.append("/");
     sbuf.append(indexAndTables.get(0));
     sbuf.append("/");
@@ -186,7 +172,7 @@ public class EsDataQuerier implements DataQuerier {
   }
 
   protected void assembleUrlProperties(StringBuffer sbuf,
-                                       Properties queryProps) {
+      Properties queryProps) {
     for (Map.Entry<Object, Object> entry : queryProps.entrySet()) {
       sbuf.append("&");
       sbuf.append(entry.getKey());
@@ -195,22 +181,20 @@ public class EsDataQuerier implements DataQuerier {
     }
   }
 
-  protected Response query(String queryUrl, String query)
-      throws IOException {
-//    HttpPost httpPost = new HttpPost(queryUrl);
-//    StringEntity entity = new StringEntity(query, "utf-8");//解决中文乱码问题
-//    entity.setContentEncoding("UTF-8");
-//    entity.setContentType("application/json");
-//    httpPost.setEntity(entity);
-//    HttpResponse response = httpClient.execute(httpPost);
-//    int status = response.getStatusLine().getStatusCode();
-//    if (status >= 200 && status < 300) {
-//      return response;
-//    } else {
-//      throw new ClientProtocolException(
-//          "Unexpected response status: " + status);
-//    }
-
+  protected Response query(String queryUrl, String query) throws IOException {
+    //    HttpPost httpPost = new HttpPost(queryUrl);
+    //    StringEntity entity = new StringEntity(query, "utf-8");//解决中文乱码问题
+    //    entity.setContentEncoding("UTF-8");
+    //    entity.setContentType("application/json");
+    //    httpPost.setEntity(entity);
+    //    HttpResponse response = httpClient.execute(httpPost);
+    //    int status = response.getStatusLine().getStatusCode();
+    //    if (status >= 200 && status < 300) {
+    //      return response;
+    //    } else {
+    //      throw new ClientProtocolException(
+    //          "Unexpected response status: " + status);
+    //    }
 
     HttpEntity entity = new NStringEntity(query, ContentType.APPLICATION_JSON);
     Request request = new Request("GET", queryUrl);
@@ -222,8 +206,8 @@ public class EsDataQuerier implements DataQuerier {
   }
 
   protected RecordSet toRecordSet(String data,
-                                  SelectorDefinition selectorDefinition,
-                                  SupplementReader supplementReader) {
+      SelectorDefinition selectorDefinition,
+      SupplementReader supplementReader) {
     JsonParser jsonParser = new JsonParser();
     JsonObject root = (JsonObject) jsonParser.parse(data);
     if (supplementReader != null)
@@ -238,7 +222,7 @@ public class EsDataQuerier implements DataQuerier {
   }
 
   protected RecordSet toQueryRecordSet(JsonObject jsonObject,
-                                       SelectorDefinition selectorDefinition) {
+      SelectorDefinition selectorDefinition) {
     RecordSetImpl recordSet = SelectorDefinitionUtils
         .createRecordSet(selectorDefinition);
     Operand[] operands = buildColumnOperands(selectorDefinition);
@@ -254,7 +238,7 @@ public class EsDataQuerier implements DataQuerier {
   }
 
   protected RecordSet toAggregationRecordSet(JsonObject jsonObject,
-                                             SelectorDefinition selectorDefinition) {
+      SelectorDefinition selectorDefinition) {
     RecordSetImpl recordSet = SelectorDefinitionUtils
         .createRecordSet(selectorDefinition);
     Operand[] operands = buildColumnOperands(selectorDefinition);
@@ -327,7 +311,7 @@ public class EsDataQuerier implements DataQuerier {
   }
 
   protected List<EntityMap> toAggregationEntityMaps(JsonObject jsonObject,
-                                                    List<ColumnDefinition> groupColumns) {
+      List<ColumnDefinition> groupColumns) {
     List<EntityMap> entityMaps = new LinkedList<EntityMap>();
     Map<String, Object> head = new HashMap<String, Object>();
     String[] groupNodeNames = extractGroupNodeNames(groupColumns);
@@ -347,9 +331,8 @@ public class EsDataQuerier implements DataQuerier {
   }
 
   protected void toAggregationEntityMaps(JsonObject jsonObject,
-                                         List<EntityMap> entityMaps,
-                                         Map<String, Object> head,
-                                         String[] groupNodeNames, int offset) {
+      List<EntityMap> entityMaps, Map<String, Object> head,
+      String[] groupNodeNames, int offset) {
     if (groupNodeNames.length - 1 == offset) {
       toAggretaionEntityMaps(jsonObject, entityMaps, head,
           groupNodeNames[offset]);
@@ -367,8 +350,7 @@ public class EsDataQuerier implements DataQuerier {
   }
 
   protected void toAggretaionEntityMaps(JsonObject jsonObject,
-                                        List<EntityMap> entityMaps,
-                                        Map<String, Object> head, String key) {
+      List<EntityMap> entityMaps, Map<String, Object> head, String key) {
     JsonObject groupNode = (JsonObject) jsonObject.get(key);
     JsonArray jsonArray = (JsonArray) groupNode.get("buckets");
     for (int i = 0; i < jsonArray.size(); i++) {
@@ -380,7 +362,7 @@ public class EsDataQuerier implements DataQuerier {
   }
 
   protected Map<String, Object> toMap(JsonObject jsonObject,
-                                      Map<String, Object> head, String key) {
+      Map<String, Object> head, String key) {
     Map<String, Object> map = new HashMap<String, Object>(head);
     for (Map.Entry<String, JsonElement> entry : jsonObject.entrySet()) {
       if (entry.getKey().equals("key")) {
