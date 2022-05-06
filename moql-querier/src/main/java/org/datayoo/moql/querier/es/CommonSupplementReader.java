@@ -35,8 +35,14 @@ public class CommonSupplementReader implements SupplementReader {
   }
 
   protected void readHits(JsonObject hits) {
-    JsonElement jValue = hits.getAsJsonPrimitive("total");
-    totalHits = jValue.getAsInt();
+    JsonElement jValue = hits.getAsJsonObject("total");
+    try {
+      totalHits = jValue.getAsInt();
+    } catch (Exception e) {
+      // 适应es7以上版本
+      totalHits = jValue.getAsJsonObject().get("value").getAsInt();
+    }
+
     jValue = hits.get("max_score");
     if (!jValue.isJsonNull())
       maxScore = jValue.getAsDouble();

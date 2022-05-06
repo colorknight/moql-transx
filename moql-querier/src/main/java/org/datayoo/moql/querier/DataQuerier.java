@@ -18,6 +18,11 @@ public interface DataQuerier {
   RecordSet query(String sql, SupplementReader supplementReader)
       throws IOException;
 
+  default RecordSet queryByDsl(String index, String dsl)
+      throws IOException {
+    return null;
+  }
+
   RecordSet query(String sql, Properties queryProps,
       SupplementReader supplementReader) throws IOException;
 

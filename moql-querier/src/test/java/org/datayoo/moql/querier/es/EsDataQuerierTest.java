@@ -31,8 +31,9 @@ public class EsDataQuerierTest extends TestCase {
     super.tearDown();
   }
 
-  public void testCommonQuery() {
-    String sql = "select sv.domain, sv.ip, sv.port from savior_data sv LIMIT 20";
+
+  public void testCommonQuery1() {
+    String sql = "select sv.* from savior_data sv LIMIT 20";
     try {
       RecordSet recordSet = dataQuerier.query(sql);
       outputRecordSet(recordSet);
@@ -53,6 +54,32 @@ public class EsDataQuerierTest extends TestCase {
       e.printStackTrace();
     }
   }
+
+  public void testCommonQuery3() {
+    String sql = "select sv.port,sv.* from savior_data sv LIMIT 20";
+    try {
+      RecordSet recordSet = dataQuerier.query(sql);
+      outputRecordSet(recordSet);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+
+
+  public void testCommonQueryDsl1() {
+    String dsl = "{\"query\":{\"match_all\":{}}}";
+    String index = "savior_data";
+    try {
+      CommonSupplementReader supplementReader = new CommonSupplementReader();
+      RecordSet recordSet = dataQuerier.queryByDsl(index, dsl);
+      outputRecordSet(recordSet);
+      System.out.println(supplementReader.getTotalHits());
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
 
   public void testGroupQuery() {
     String sql = "select ip.src, ip.proto, max(ip.sport), min(ip.sport) from " +

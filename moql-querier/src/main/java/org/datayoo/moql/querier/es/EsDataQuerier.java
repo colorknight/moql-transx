@@ -1,6 +1,7 @@
 package org.datayoo.moql.querier.es;
 
 import com.google.gson.*;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -102,9 +103,12 @@ public class EsDataQuerier implements DataQuerier {
     if (queryProps == null) {
       queryProps = new Properties();
     }
+
     try {
       SelectorDefinition selectorDefinition = MoqlParser.parseMoql(sql);
       List<String> indexAndTables = getIndexAndTables(selectorDefinition);
+      // TODO 转换特殊符号 *
+      transformSelectorDefinition(selectorDefinition, indexAndTables);
       String query = MoqlTranslator.translateMetadata2Sql(selectorDefinition,
           SqlDialectType.ELASTICSEARCH);
       //      String queryUrl = makeQueryUrl(indexAndTables, queryProps);
@@ -117,6 +121,55 @@ public class EsDataQuerier implements DataQuerier {
     } catch (MoqlException e) {
       throw new IOException("Parse failed!", e);
     }
+  }
+
+  @Override
+  public RecordSet queryByDsl(String index, String dsl)
+      throws IOException {
+    SelectorMetadata metadata = new SelectorMetadata();
+    ColumnsMetadata columnsMetadata = new ColumnsMetadata();
+    columnsMetadata.setColumns(getIndexColumnsMetadata(index));
+    metadata.setColumns(columnsMetadata);
+    List<String> indexAndTables = new ArrayList<>();
+    indexAndTables.add(index);
+    String queryUrl = makeQueryUrl(indexAndTables, new Properties());
+    Response response = query(queryUrl, dsl);
+    String data = EntityUtils.toString(response.getEntity());
+    return toRecordSet(data, metadata, new CommonSupplementReader());
+  }
+
+  protected void transformSelectorDefinition(SelectorDefinition selectorDefinition,
+                                             List<String> indexAndTables) throws IOException {
+    SelectorMetadata metadata = (SelectorMetadata) selectorDefinition;
+    ColumnsMetadata columnsMetadata = metadata.getColumns();
+    List<ColumnMetadata> columns = columnsMetadata.getColumns();
+    for (int i = 0; i < columns.size(); i++) {
+      if (columns.get(i).getName().endsWith("*")) {
+        columns.remove(i);
+        String index = indexAndTables.get(0);
+        List<ColumnMetadata> indexColumnsMetadata = getIndexColumnsMetadata(index);
+        for (int j = indexColumnsMetadata.size() - 1; j >= 0 ; j--) {
+          ColumnMetadata columnMetadata = indexColumnsMetadata.get(j);
+          columns.add(i, columnMetadata);
+        }
+      }
+    }
+  }
+
+  private List<ColumnMetadata> getIndexColumnsMetadata(String index) throws IOException {
+    Request request = new Request("GET", index);
+    Response response = httpClient.performRequest(request);
+    String data = EntityUtils.toString(response.getEntity());
+    JsonParser jsonParser = new JsonParser();
+    JsonObject root = (JsonObject) jsonParser.parse(data);
+    JsonObject properties = root.get(index).getAsJsonObject().get("mappings").getAsJsonObject().get("properties").getAsJsonObject();
+    List<ColumnMetadata> columns = new ArrayList<>(properties.size());
+    properties.entrySet();
+    for (Map.Entry<String, JsonElement> map: properties.entrySet()) {
+      String name = map.getKey();
+      columns.add(new ColumnMetadata(name, name));
+    }
+    return columns;
   }
 
   protected List<String> getIndexAndTables(
