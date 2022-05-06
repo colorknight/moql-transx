@@ -107,7 +107,7 @@ public class EsDataQuerier implements DataQuerier {
     try {
       SelectorDefinition selectorDefinition = MoqlParser.parseMoql(sql);
       List<String> indexAndTables = getIndexAndTables(selectorDefinition);
-      // TODO 转换特殊符号 *
+      // 转换特殊符号 *
       transformSelectorDefinition(selectorDefinition, indexAndTables);
       String query = MoqlTranslator.translateMetadata2Sql(selectorDefinition,
           SqlDialectType.ELASTICSEARCH);
@@ -121,21 +121,6 @@ public class EsDataQuerier implements DataQuerier {
     } catch (MoqlException e) {
       throw new IOException("Parse failed!", e);
     }
-  }
-
-  @Override
-  public RecordSet queryByDsl(String index, String dsl)
-      throws IOException {
-    SelectorMetadata metadata = new SelectorMetadata();
-    ColumnsMetadata columnsMetadata = new ColumnsMetadata();
-    columnsMetadata.setColumns(getIndexColumnsMetadata(index));
-    metadata.setColumns(columnsMetadata);
-    List<String> indexAndTables = new ArrayList<>();
-    indexAndTables.add(index);
-    String queryUrl = makeQueryUrl(indexAndTables, new Properties());
-    Response response = query(queryUrl, dsl);
-    String data = EntityUtils.toString(response.getEntity());
-    return toRecordSet(data, metadata, new CommonSupplementReader());
   }
 
   protected void transformSelectorDefinition(SelectorDefinition selectorDefinition,
