@@ -5,13 +5,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.util.EntityUtils;
 import org.datayoo.moql.*;
@@ -26,7 +20,9 @@ import org.datayoo.moql.querier.util.SelectorDefinitionUtils;
 import org.datayoo.moql.sql.SqlDialectType;
 import org.datayoo.moql.translator.MoqlTranslator;
 import org.datayoo.moql.util.StringFormater;
-import org.elasticsearch.client.*;
+import org.elasticsearch.client.Request;
+import org.elasticsearch.client.Response;
+import org.elasticsearch.client.RestClient;
 
 import java.io.IOException;
 import java.util.*;
@@ -39,6 +35,8 @@ public class EsDataQuerier implements DataQuerier {
   public static String DOC_COUNT = "doc_count";
 
   public static final String SCHEME = "http";
+
+  public static final String INDEX_INFO = "indexInfo";
 
   protected int maxResultWindow = 10000;
 
@@ -108,7 +106,7 @@ public class EsDataQuerier implements DataQuerier {
       SelectorDefinition selectorDefinition = MoqlParser.parseMoql(sql);
       List<String> indexAndTables = getIndexAndTables(selectorDefinition);
       // 转换特殊符号 *
-      transformSelectorDefinition(selectorDefinition, indexAndTables);
+      transformSelectorDefinition(selectorDefinition, indexAndTables, queryProps);
       String query = MoqlTranslator.translateMetadata2Sql(selectorDefinition,
           SqlDialectType.ELASTICSEARCH);
       //      String queryUrl = makeQueryUrl(indexAndTables, queryProps);
@@ -124,14 +122,22 @@ public class EsDataQuerier implements DataQuerier {
   }
 
   protected void transformSelectorDefinition(SelectorDefinition selectorDefinition,
-                                             List<String> indexAndTables) throws IOException {
+                                             List<String> indexAndTables,
+                                             Properties properties) throws IOException {
     SelectorMetadata metadata = (SelectorMetadata) selectorDefinition;
     ColumnsMetadata columnsMetadata = metadata.getColumns();
     List<ColumnMetadata> columns = columnsMetadata.getColumns();
     for (int i = 0; i < columns.size(); i++) {
       if (columns.get(i).getName().endsWith("*")) {
         columns.remove(i);
-        String index = indexAndTables.get(0);
+        String index;
+        if (properties.get(INDEX_INFO) == null) {
+          index = indexAndTables.get(0);
+        } else {
+          Properties indexInfo = (Properties) properties.get(INDEX_INFO);
+          index = indexInfo.getProperty(indexAndTables.get(0));
+        }
+
         List<ColumnMetadata> indexColumnsMetadata = getIndexColumnsMetadata(index);
         for (int j = indexColumnsMetadata.size() - 1; j >= 0 ; j--) {
           ColumnMetadata columnMetadata = indexColumnsMetadata.get(j);
@@ -190,10 +196,19 @@ public class EsDataQuerier implements DataQuerier {
 
   protected String makeQueryUrl(List<String> indexAndTables,
       Properties queryProps) {
+
+
     StringBuffer sbuf = new StringBuffer();
     //    sbuf.append(esServiceUrl);
     sbuf.append("/");
-    sbuf.append(indexAndTables.get(0));
+    if (queryProps.get(INDEX_INFO) != null) {
+      Properties indexInfo = (Properties) queryProps.get(INDEX_INFO);
+      String index = indexInfo.getProperty(indexAndTables.get(0));
+      sbuf.append(index);
+    } else {
+      sbuf.append(indexAndTables.get(0));
+    }
+
     sbuf.append("/");
     if (indexAndTables.size() > 1) {
       for (int i = 1; i < indexAndTables.size(); i++) {
@@ -205,6 +220,7 @@ public class EsDataQuerier implements DataQuerier {
       sbuf.append("/");
     }
     sbuf.append("_search?pretty");
+    queryProps.remove(INDEX_INFO);
     assembleUrlProperties(sbuf, queryProps);
     return sbuf.toString();
   }
@@ -343,7 +359,10 @@ public class EsDataQuerier implements DataQuerier {
       Object value = entry.getValue();
       if (entry.getValue() instanceof JsonPrimitive) {
         value = getValue((JsonPrimitive) entry.getValue());
+      } else {
+        value = entry.getValue().toString();
       }
+
       record.put(entry.getKey(), value);
     }
   }
