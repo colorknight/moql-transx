@@ -151,19 +151,30 @@ public class EsDataQuerier implements DataQuerier {
 
   private List<ColumnMetadata> getIndexColumnsMetadata(String indexName)
       throws IOException {
-    Request request = new Request("GET", indexName);
-    Response response = httpClient.performRequest(request);
-    String data = EntityUtils.toString(response.getEntity());
-    JsonParser jsonParser = new JsonParser();
-    JsonObject root = (JsonObject) jsonParser.parse(data);
-    JsonObject properties = root.get(indexName).getAsJsonObject()
-        .get("mappings").getAsJsonObject().get("properties").getAsJsonObject();
-    List<ColumnMetadata> columns = new ArrayList<>(properties.size());
-    properties.entrySet();
-    for (Map.Entry<String, JsonElement> map : properties.entrySet()) {
-      String name = map.getKey();
-      columns.add(new ColumnMetadata(name, name));
+    String[] indexNameArray = StringUtils.split(indexName,",");
+    List<String> columnNames = new ArrayList<>();
+    for (String index: indexNameArray) {
+      Request request = new Request("GET", index);
+      Response response = httpClient.performRequest(request);
+      String data = EntityUtils.toString(response.getEntity());
+      JsonParser jsonParser = new JsonParser();
+      JsonObject root = (JsonObject) jsonParser.parse(data);
+      JsonObject properties = root.get(index).getAsJsonObject()
+          .get("mappings").getAsJsonObject().get("properties").getAsJsonObject();
+
+      properties.entrySet();
+      for (Map.Entry<String, JsonElement> map : properties.entrySet()) {
+        String name = map.getKey();
+        if (!columnNames.contains(name)) {
+          columnNames.add(name);
+        }
+      }
     }
+    List<ColumnMetadata> columns = new ArrayList<>(columnNames.size());
+    for (String column : columnNames) {
+      columns.add(new ColumnMetadata(column, column));
+    }
+
     return columns;
   }
 
