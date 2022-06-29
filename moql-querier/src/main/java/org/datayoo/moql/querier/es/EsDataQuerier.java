@@ -36,7 +36,7 @@ public class EsDataQuerier implements DataQuerier {
 
   public static final String SCHEME = "http";
 
-  public static final String INDEX_INFO = "indexInfo";
+  public static final String INDEX_NAME_MAPPINGS = "indexNameMappings";
 
   protected int maxResultWindow = 10000;
 
@@ -106,7 +106,8 @@ public class EsDataQuerier implements DataQuerier {
       SelectorDefinition selectorDefinition = MoqlParser.parseMoql(sql);
       List<String> indexAndTables = getIndexAndTables(selectorDefinition);
       // 转换特殊符号 *
-      transformSelectorDefinition(selectorDefinition, indexAndTables, queryProps);
+      transformSelectorDefinition(selectorDefinition, indexAndTables,
+          queryProps);
       String query = MoqlTranslator.translateMetadata2Sql(selectorDefinition,
           SqlDialectType.ELASTICSEARCH);
       //      String queryUrl = makeQueryUrl(indexAndTables, queryProps);
@@ -121,25 +122,26 @@ public class EsDataQuerier implements DataQuerier {
     }
   }
 
-  protected void transformSelectorDefinition(SelectorDefinition selectorDefinition,
-                                             List<String> indexAndTables,
-                                             Properties properties) throws IOException {
+  protected void transformSelectorDefinition(
+      SelectorDefinition selectorDefinition, List<String> indexAndTables,
+      Properties properties) throws IOException {
     SelectorMetadata metadata = (SelectorMetadata) selectorDefinition;
     ColumnsMetadata columnsMetadata = metadata.getColumns();
     List<ColumnMetadata> columns = columnsMetadata.getColumns();
     for (int i = 0; i < columns.size(); i++) {
       if (columns.get(i).getName().endsWith("*")) {
         columns.remove(i);
-        String index;
-        if (properties.get(INDEX_INFO) == null) {
-          index = indexAndTables.get(0);
+        Properties indexNameMappings = (Properties) properties.get(
+            INDEX_NAME_MAPPINGS);
+        String indexName;
+        if (indexNameMappings == null) {
+          indexName = indexAndTables.get(0);
         } else {
-          Properties indexInfo = (Properties) properties.get(INDEX_INFO);
-          index = indexInfo.getProperty(indexAndTables.get(0));
+          indexName = indexNameMappings.getProperty(indexAndTables.get(0));
         }
-
-        List<ColumnMetadata> indexColumnsMetadata = getIndexColumnsMetadata(index);
-        for (int j = indexColumnsMetadata.size() - 1; j >= 0 ; j--) {
+        List<ColumnMetadata> indexColumnsMetadata = getIndexColumnsMetadata(
+            indexName);
+        for (int j = indexColumnsMetadata.size() - 1; j >= 0; j--) {
           ColumnMetadata columnMetadata = indexColumnsMetadata.get(j);
           columns.add(i, columnMetadata);
         }
@@ -147,16 +149,18 @@ public class EsDataQuerier implements DataQuerier {
     }
   }
 
-  private List<ColumnMetadata> getIndexColumnsMetadata(String index) throws IOException {
-    Request request = new Request("GET", index);
+  private List<ColumnMetadata> getIndexColumnsMetadata(String indexName)
+      throws IOException {
+    Request request = new Request("GET", indexName);
     Response response = httpClient.performRequest(request);
     String data = EntityUtils.toString(response.getEntity());
     JsonParser jsonParser = new JsonParser();
     JsonObject root = (JsonObject) jsonParser.parse(data);
-    JsonObject properties = root.get(index).getAsJsonObject().get("mappings").getAsJsonObject().get("properties").getAsJsonObject();
+    JsonObject properties = root.get(indexName).getAsJsonObject()
+        .get("mappings").getAsJsonObject().get("properties").getAsJsonObject();
     List<ColumnMetadata> columns = new ArrayList<>(properties.size());
     properties.entrySet();
-    for (Map.Entry<String, JsonElement> map: properties.entrySet()) {
+    for (Map.Entry<String, JsonElement> map : properties.entrySet()) {
       String name = map.getKey();
       columns.add(new ColumnMetadata(name, name));
     }
@@ -196,32 +200,36 @@ public class EsDataQuerier implements DataQuerier {
 
   protected String makeQueryUrl(List<String> indexAndTables,
       Properties queryProps) {
-
-
     StringBuffer sbuf = new StringBuffer();
-    //    sbuf.append(esServiceUrl);
     sbuf.append("/");
-    if (queryProps.get(INDEX_INFO) != null) {
-      Properties indexInfo = (Properties) queryProps.get(INDEX_INFO);
-      String index = indexInfo.getProperty(indexAndTables.get(0));
-      sbuf.append(index);
+    Properties indexNameMappings = (Properties) queryProps.get(
+        INDEX_NAME_MAPPINGS);
+    if (indexNameMappings != null) {
+      String indexName = indexNameMappings.getProperty(indexAndTables.get(0));
+      if (indexName == null)
+        indexName = indexAndTables.get(0);
+      sbuf.append(indexName);
     } else {
       sbuf.append(indexAndTables.get(0));
     }
-
     sbuf.append("/");
     if (indexAndTables.size() > 1) {
       for (int i = 1; i < indexAndTables.size(); i++) {
         if (i != 1) {
           sbuf.append(",");
         }
-        sbuf.append(indexAndTables.get(i));
+        String indexName = indexNameMappings.getProperty(indexAndTables.get(i));
+        if (indexName == null)
+          indexName = indexAndTables.get(i);
+        sbuf.append(indexName);
       }
       sbuf.append("/");
     }
     sbuf.append("_search?pretty");
-    queryProps.remove(INDEX_INFO);
+    queryProps.remove(INDEX_NAME_MAPPINGS);
     assembleUrlProperties(sbuf, queryProps);
+    if (indexNameMappings != null)
+      queryProps.put(INDEX_NAME_MAPPINGS, indexNameMappings);
     return sbuf.toString();
   }
 
@@ -277,8 +285,8 @@ public class EsDataQuerier implements DataQuerier {
 
   protected RecordSet toQueryRecordSet(JsonObject jsonObject,
       SelectorDefinition selectorDefinition) {
-    RecordSetImpl recordSet = SelectorDefinitionUtils
-        .createRecordSet(selectorDefinition);
+    RecordSetImpl recordSet = SelectorDefinitionUtils.createRecordSet(
+        selectorDefinition);
     Operand[] operands = buildColumnOperands(selectorDefinition);
     JsonArray hitArray = jsonObject.getAsJsonArray("hits");
     List<Object[]> records = recordSet.getRecords();
@@ -293,8 +301,8 @@ public class EsDataQuerier implements DataQuerier {
 
   protected RecordSet toAggregationRecordSet(JsonObject jsonObject,
       SelectorDefinition selectorDefinition) {
-    RecordSetImpl recordSet = SelectorDefinitionUtils
-        .createRecordSet(selectorDefinition);
+    RecordSetImpl recordSet = SelectorDefinitionUtils.createRecordSet(
+        selectorDefinition);
     Operand[] operands = buildColumnOperands(selectorDefinition);
 
     List<Object[]> records = recordSet.getRecords();
@@ -326,8 +334,9 @@ public class EsDataQuerier implements DataQuerier {
       try {
         operands[i++] = operandFactory.createOperand(value);
       } catch (MoqlException e) {
-        throw new IllegalArgumentException(StringFormater
-            .format("Invalid column value '{}'!", columnMetadata.getValue()));
+        throw new IllegalArgumentException(
+            StringFormater.format("Invalid column value '{}'!",
+                columnMetadata.getValue()));
       }
     }
     return operands;
@@ -394,8 +403,8 @@ public class EsDataQuerier implements DataQuerier {
       toAggretaionEntityMaps(jsonObject, entityMaps, head,
           groupNodeNames[offset]);
     } else {
-      JsonObject groupNode = (JsonObject) jsonObject
-          .get(groupNodeNames[offset]);
+      JsonObject groupNode = (JsonObject) jsonObject.get(
+          groupNodeNames[offset]);
       JsonArray jsonArray = (JsonArray) groupNode.get("buckets");
       for (int i = 0; i < jsonArray.size(); i++) {
         JsonObject jo = (JsonObject) jsonArray.get(i);
