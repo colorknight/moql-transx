@@ -4,6 +4,7 @@ import com.google.gson.*;
 import org.apache.commons.lang3.Validate;
 import org.datayoo.moql.*;
 import org.datayoo.moql.core.*;
+import org.datayoo.moql.core.Column;
 import org.datayoo.moql.core.group.GroupRecordSetOperator;
 import org.datayoo.moql.metadata.*;
 import org.datayoo.moql.operand.constant.StringConstant;
@@ -116,11 +117,11 @@ public class ElasticSearchTranslator implements SqlTranslator {
         throw new UnsupportedOperationException(
             "Unsupported nested selector in select clause!");
       String value = columnMetadata.getValue();
-      int index = value.indexOf('(');
-      if (index == -1) {
-        index = value.indexOf('.');
-        value = value.substring(index + 1);
-      }
+//      int index = value.indexOf('(');
+//      if (index == -1) {
+//        index = value.indexOf('.');
+//        value = value.substring(index + 1);
+//      }
       includes.add(value);
     }
     source.add("includes", includes);

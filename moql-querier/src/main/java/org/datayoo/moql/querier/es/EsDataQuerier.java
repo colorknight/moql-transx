@@ -151,16 +151,16 @@ public class EsDataQuerier implements DataQuerier {
 
   private List<ColumnMetadata> getIndexColumnsMetadata(String indexName)
       throws IOException {
-    String[] indexNameArray = StringUtils.split(indexName,",");
+    String[] indexNameArray = StringUtils.split(indexName, ",");
     List<String> columnNames = new ArrayList<>();
-    for (String index: indexNameArray) {
+    for (String index : indexNameArray) {
       Request request = new Request("GET", index);
       Response response = httpClient.performRequest(request);
       String data = EntityUtils.toString(response.getEntity());
       JsonParser jsonParser = new JsonParser();
       JsonObject root = (JsonObject) jsonParser.parse(data);
-      JsonObject properties = root.get(index).getAsJsonObject()
-          .get("mappings").getAsJsonObject().get("properties").getAsJsonObject();
+      JsonObject properties = root.get(index).getAsJsonObject().get("mappings")
+          .getAsJsonObject().get("properties").getAsJsonObject();
 
       properties.entrySet();
       for (Map.Entry<String, JsonElement> map : properties.entrySet()) {
@@ -337,8 +337,8 @@ public class EsDataQuerier implements DataQuerier {
       String value = columnMetadata.getValue();
       int index = value.indexOf('(');
       if (index == -1) {
-        index = value.indexOf('.');
-        value = value.substring(index + 1);
+        //        index = value.indexOf('.');
+        //        value = value.substring(index + 1);
       } else {
         value = getAggregationFunctionExpression(columnMetadata);
       }
@@ -370,6 +370,7 @@ public class EsDataQuerier implements DataQuerier {
     return new EntityMapImpl(record);
   }
 
+
   protected void toMap(JsonObject jsonObject, Map<String, Object> record) {
     for (Map.Entry<String, JsonElement> entry : jsonObject.entrySet()) {
       if (entry.getKey().equals("_source")) {
@@ -379,10 +380,7 @@ public class EsDataQuerier implements DataQuerier {
       Object value = entry.getValue();
       if (entry.getValue() instanceof JsonPrimitive) {
         value = getValue((JsonPrimitive) entry.getValue());
-      } else {
-        value = entry.getValue().toString();
       }
-
       record.put(entry.getKey(), value);
     }
   }
