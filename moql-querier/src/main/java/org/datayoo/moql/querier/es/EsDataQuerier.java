@@ -11,6 +11,7 @@ import org.apache.http.util.EntityUtils;
 import org.datayoo.moql.*;
 import org.datayoo.moql.core.RecordSetImpl;
 import org.datayoo.moql.metadata.*;
+import org.datayoo.moql.operand.OperandContextArrayList;
 import org.datayoo.moql.operand.OperandFactory;
 import org.datayoo.moql.operand.factory.OperandFactoryImpl;
 import org.datayoo.moql.parser.MoqlParser;
@@ -377,54 +378,75 @@ public class EsDataQuerier implements DataQuerier {
         toMap((JsonObject) entry.getValue(), record);
         continue;
       }
-      Object value = entry.getValue();
-      if (value instanceof JsonArray) {
-        toArrayRecord(entry.getKey(), (JsonArray) entry.getValue(), record);
-      } else if (value instanceof JsonObject) {
-        value = value.toString();
-        record.put(entry.getKey(), value);
-      } else if (entry.getValue() instanceof JsonPrimitive) {
-        value = getValue((JsonPrimitive) entry.getValue());
-        record.put(entry.getKey(), value);
-      }
+      JsonElement je = entry.getValue();
+      record.put(entry.getKey(), getObject(je));
     }
   }
 
-  protected void toArrayRecord(String prefix, JsonArray array,
-      Map<String, Object> record) {
-    // 先把旧的数据集加入结果
-    record.put(prefix, array.toString());
-    Map<String, JsonArray> arrayMap = new HashMap<>();
-    for (JsonElement element : array) {
-      if (element instanceof JsonObject) {
-        JsonObject jsonObject = (JsonObject) element;
-        Set<Map.Entry<String, JsonElement>> set = jsonObject.entrySet();
-
-        for (Map.Entry<String, JsonElement> entry : set) {
-          String key = prefix + "." + entry.getKey();
-          if (arrayMap.get(key) == null) {
-            JsonArray jsonArray = new JsonArray();
-            jsonArray.add(entry.getValue());
-            arrayMap.put(key, jsonArray);
-          } else {
-            JsonArray value = arrayMap.get(key);
-            value.add(entry.getValue());
-            arrayMap.put(key, value);
-          }
-        }
-      }
-      if (element instanceof JsonPrimitive) {
-        if (record.get(prefix) == null) {
-          Object value = getValue((JsonPrimitive) element);
-          record.put(prefix, value);
-        }
-
-      }
+  protected Object getObject(JsonElement je) {
+    if (je instanceof JsonObject) {
+      return toMap((JsonObject) je);
+    } else if (je instanceof JsonArray) {
+      return toList((JsonArray) je);
+    } else if (je instanceof JsonPrimitive) {
+      return getValue((JsonPrimitive) je);
     }
-    for (Map.Entry<String, JsonArray> entry : arrayMap.entrySet()) {
-      toArrayRecord(entry.getKey(), entry.getValue(), record);
-    }
+    return null;
   }
+
+  protected Map<String, Object> toMap(JsonObject jo) {
+    Map<String, Object> map = new HashMap<>();
+    for (Map.Entry<String, JsonElement> entry : jo.entrySet()) {
+      JsonElement je = entry.getValue();
+      map.put(entry.getKey(), getObject(je));
+    }
+    return map;
+  }
+
+  protected OperandContextArrayList toList(JsonArray ja) {
+    OperandContextArrayList arrayList = new OperandContextArrayList(ja.size());
+    for (int i = 0; i < ja.size(); i++) {
+      JsonElement je = ja.get(i);
+      arrayList.add(getObject(je));
+    }
+    return arrayList;
+  }
+
+  //  protected void toArrayRecord(String prefix, JsonArray array,
+  //      Map<String, Object> record) {
+  //    // 先把旧的数据集加入结果
+  //    record.put(prefix, array.toString());
+  //    Map<String, JsonArray> arrayMap = new HashMap<>();
+  //    for (JsonElement element : array) {
+  //      if (element instanceof JsonObject) {
+  //        JsonObject jsonObject = (JsonObject) element;
+  //        Set<Map.Entry<String, JsonElement>> set = jsonObject.entrySet();
+  //
+  //        for (Map.Entry<String, JsonElement> entry : set) {
+  //          String key = prefix + "." + entry.getKey();
+  //          if (arrayMap.get(key) == null) {
+  //            JsonArray jsonArray = new JsonArray();
+  //            jsonArray.add(entry.getValue());
+  //            arrayMap.put(key, jsonArray);
+  //          } else {
+  //            JsonArray value = arrayMap.get(key);
+  //            value.add(entry.getValue());
+  //            arrayMap.put(key, value);
+  //          }
+  //        }
+  //      }
+  //      if (element instanceof JsonPrimitive) {
+  //        if (record.get(prefix) == null) {
+  //          Object value = getValue((JsonPrimitive) element);
+  //          record.put(prefix, value);
+  //        }
+  //
+  //      }
+  //    }
+  //    for (Map.Entry<String, JsonArray> entry : arrayMap.entrySet()) {
+  //      toArrayRecord(entry.getKey(), entry.getValue(), record);
+  //    }
+  //  }
 
   protected List<EntityMap> toAggregationEntityMaps(JsonObject jsonObject,
       List<ColumnDefinition> groupColumns) {
@@ -520,7 +542,7 @@ public class EsDataQuerier implements DataQuerier {
     Object[] record = new Object[operands.length];
     for (int i = 0; i < operands.length; i++) {
       record[i] = entityMap.getEntity(operands[i].getName());
-//            record[i] = operands[i].operate(entityMap);
+      //            record[i] = operands[i].operate(entityMap);
     }
     return record;
   }
