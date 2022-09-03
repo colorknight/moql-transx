@@ -26,6 +26,7 @@ import org.elasticsearch.client.RestClient;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class EsDataQuerier implements DataQuerier {
 
@@ -370,7 +371,6 @@ public class EsDataQuerier implements DataQuerier {
     return new EntityMapImpl(record);
   }
 
-
   protected void toMap(JsonObject jsonObject, Map<String, Object> record) {
     for (Map.Entry<String, JsonElement> entry : jsonObject.entrySet()) {
       if (entry.getKey().equals("_source")) {
@@ -378,10 +378,51 @@ public class EsDataQuerier implements DataQuerier {
         continue;
       }
       Object value = entry.getValue();
-      if (entry.getValue() instanceof JsonPrimitive) {
+      if (value instanceof JsonArray) {
+        toArrayRecord(entry.getKey(), (JsonArray) entry.getValue(), record);
+      } else if (value instanceof JsonObject) {
+        value = value.toString();
+        record.put(entry.getKey(), value);
+      } else if (entry.getValue() instanceof JsonPrimitive) {
         value = getValue((JsonPrimitive) entry.getValue());
+        record.put(entry.getKey(), value);
       }
-      record.put(entry.getKey(), value);
+    }
+  }
+
+  protected void toArrayRecord(String prefix, JsonArray array,
+      Map<String, Object> record) {
+    // 先把旧的数据集加入结果
+    record.put(prefix, array.toString());
+    Map<String, JsonArray> arrayMap = new HashMap<>();
+    for (JsonElement element : array) {
+      if (element instanceof JsonObject) {
+        JsonObject jsonObject = (JsonObject) element;
+        Set<Map.Entry<String, JsonElement>> set = jsonObject.entrySet();
+
+        for (Map.Entry<String, JsonElement> entry : set) {
+          String key = prefix + "." + entry.getKey();
+          if (arrayMap.get(key) == null) {
+            JsonArray jsonArray = new JsonArray();
+            jsonArray.add(entry.getValue());
+            arrayMap.put(key, jsonArray);
+          } else {
+            JsonArray value = arrayMap.get(key);
+            value.add(entry.getValue());
+            arrayMap.put(key, value);
+          }
+        }
+      }
+      if (element instanceof JsonPrimitive) {
+        if (record.get(prefix) == null) {
+          Object value = getValue((JsonPrimitive) element);
+          record.put(prefix, value);
+        }
+
+      }
+    }
+    for (Map.Entry<String, JsonArray> entry : arrayMap.entrySet()) {
+      toArrayRecord(entry.getKey(), entry.getValue(), record);
     }
   }
 
@@ -478,7 +519,8 @@ public class EsDataQuerier implements DataQuerier {
   protected Object[] toRecord(Operand[] operands, EntityMap entityMap) {
     Object[] record = new Object[operands.length];
     for (int i = 0; i < operands.length; i++) {
-      record[i] = operands[i].operate(entityMap);
+      record[i] = entityMap.getEntity(operands[i].getName());
+//            record[i] = operands[i].operate(entityMap);
     }
     return record;
   }
