@@ -541,8 +541,7 @@ public class EsDataQuerier implements DataQuerier {
   protected Object[] toRecord(Operand[] operands, EntityMap entityMap) {
     Object[] record = new Object[operands.length];
     for (int i = 0; i < operands.length; i++) {
-      record[i] = entityMap.getEntity(operands[i].getName());
-      //            record[i] = operands[i].operate(entityMap);
+      record[i] = operands[i].operate(entityMap);
     }
     return record;
   }
