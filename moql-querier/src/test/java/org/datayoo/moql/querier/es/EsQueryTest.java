@@ -8,9 +8,6 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.datayoo.moql.RecordSet;
-import org.datayoo.moql.SelectorDefinition;
-import org.datayoo.moql.engine.MoqlEngine;
-import org.datayoo.moql.parser.MoqlParser;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
@@ -23,7 +20,27 @@ public class EsQueryTest extends TestCase {
 
   public void test01() throws IOException {
     open();
-    String sql = "select titleWords.index,titleWords.term from zz_news_entity-202205";
+    String sql = "select siteName,_id,_index,_type from target_index" ;
+    EsDataQuerier esDataQuerier = new EsDataQuerier();
+    esDataQuerier.bind(restHighLevelClient.getLowLevelClient());
+
+    String[] array = sql.split("(?i)from");
+    String tableNames = array[array.length - 1].trim().split(" ")[0];
+
+    sql = sql.replace(tableNames, "table");
+    Properties properties = new Properties();
+    Properties indexNameMappings = new Properties();
+    indexNameMappings.put("table", tableNames);
+    properties.put(EsDataQuerier.INDEX_NAME_MAPPINGS, indexNameMappings);
+    RecordSet recordSet = esDataQuerier.query(sql, properties);
+
+    System.out.println(recordSet.getRecords().size());
+    close();
+  }
+
+  public void test02() throws IOException {
+    open();
+    String sql = "select * from target_index" ;
     EsDataQuerier esDataQuerier = new EsDataQuerier();
     esDataQuerier.bind(restHighLevelClient.getLowLevelClient());
 
@@ -46,7 +63,7 @@ public class EsQueryTest extends TestCase {
       return;
     }
 
-    String url = "172.30.30.4:19200";
+    String url = "172.31.179.128:9200";
 
     List<Map<String, Object>> address = new LinkedList<>();
     if (StringUtils.isNotEmpty(url)) {
@@ -65,7 +82,7 @@ public class EsQueryTest extends TestCase {
       connectionInfo.put("port", 9200);
       address.add(connectionInfo);
     }
-    restHighLevelClient = restHighLevelClient(address, "", "");
+    restHighLevelClient = restHighLevelClient(address, "elastic", "datayoo123");
   }
 
   public static RestHighLevelClient restHighLevelClient(

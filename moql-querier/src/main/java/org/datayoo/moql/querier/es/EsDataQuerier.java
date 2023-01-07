@@ -27,12 +27,16 @@ import org.elasticsearch.client.RestClient;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class EsDataQuerier implements DataQuerier {
 
   public static String PROP_HTTP_PORT = "elasticsearch.port";
   public static String PROP_ES_SVC_URL = "elasticsearch.serviceUrl";
+
+  public static final String COLUMN_INDEX = "_index";
+  public static final String COLUMN_ID = "_id";
+  public static final String COLUMN_SCOUR = "_score";
+  public static final String COLUMN_TYPE = "_type";
 
   public static String DOC_COUNT = "doc_count";
 
@@ -173,6 +177,10 @@ public class EsDataQuerier implements DataQuerier {
       }
     }
     List<ColumnMetadata> columns = new ArrayList<>(columnNames.size());
+    columns.add(new ColumnMetadata(COLUMN_INDEX, COLUMN_INDEX));
+    columns.add(new ColumnMetadata(COLUMN_ID, COLUMN_ID));
+    columns.add(new ColumnMetadata(COLUMN_TYPE, COLUMN_TYPE));
+    columns.add(new ColumnMetadata(COLUMN_SCOUR, COLUMN_SCOUR));
     for (String column : columnNames) {
       columns.add(new ColumnMetadata(column, column));
     }
