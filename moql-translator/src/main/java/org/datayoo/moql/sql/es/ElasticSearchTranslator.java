@@ -18,9 +18,11 @@ import org.datayoo.moql.operand.expression.relation.*;
 import org.datayoo.moql.operand.function.*;
 import org.datayoo.moql.sql.FunctionTranslator;
 import org.datayoo.moql.sql.SqlTranslator;
+import org.datayoo.moql.sql.mongodb.MongoFunctionTranslator;
 import org.datayoo.moql.util.StringFormater;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -29,21 +31,21 @@ public class ElasticSearchTranslator implements SqlTranslator {
   protected Map<String, ESFunctionTranslator> functionTranslators = new HashMap<String, ESFunctionTranslator>();
 
   {
-    functionTranslators
-        .put(MatchTranslator.FUNCTION_NAME, new MatchTranslator());
-    functionTranslators
-        .put(MatchPhraseTranslator.FUNCTION_NAME, new MatchPhraseTranslator());
+    functionTranslators.put(MatchTranslator.FUNCTION_NAME,
+        new MatchTranslator());
+    functionTranslators.put(MatchPhraseTranslator.FUNCTION_NAME,
+        new MatchPhraseTranslator());
     functionTranslators.put(MatchPhrasePrefixTranslator.FUNCTION_NAME,
         new MatchPhrasePrefixTranslator());
-    functionTranslators
-        .put(TermsSetTranslator.FUNCTION_NAME, new TermsSetTranslator());
+    functionTranslators.put(TermsSetTranslator.FUNCTION_NAME,
+        new TermsSetTranslator());
     functionTranslators.put(Regex.FUNCTION_NAME, new RegExpTranslator());
-    functionTranslators
-        .put(FuzzyTranslator.FUNCTION_NAME, new FuzzyTranslator());
+    functionTranslators.put(FuzzyTranslator.FUNCTION_NAME,
+        new FuzzyTranslator());
     functionTranslators.put(TypeTranslator.FUNCTION_NAME, new TypeTranslator());
     functionTranslators.put(IdsTranslator.FUNCTION_NAME, new IdsTranslator());
-    functionTranslators
-        .put(MoreLikeTranslator.FUNCTION_NAME, new MoreLikeTranslator());
+    functionTranslators.put(MoreLikeTranslator.FUNCTION_NAME,
+        new MoreLikeTranslator());
   }
 
   protected static Gson gson = new GsonBuilder().serializeNulls()
@@ -106,8 +108,7 @@ public class ElasticSearchTranslator implements SqlTranslator {
 
   protected void translateSelectClause(SelectorDefinition selectorDefinition,
       JsonObject jsonObject, Map<String, Object> translationContext) {
-    ColumnsMetadata columnsMetadata = ((SelectorMetadata) selectorDefinition)
-        .getColumns();
+    ColumnsMetadata columnsMetadata = ((SelectorMetadata) selectorDefinition).getColumns();
     if (isSelectAll(columnsMetadata))
       return;
     JsonObject source = new JsonObject();
@@ -117,11 +118,11 @@ public class ElasticSearchTranslator implements SqlTranslator {
         throw new UnsupportedOperationException(
             "Unsupported nested selector in select clause!");
       String value = columnMetadata.getValue();
-//      int index = value.indexOf('(');
-//      if (index == -1) {
-//        index = value.indexOf('.');
-//        value = value.substring(index + 1);
-//      }
+      //      int index = value.indexOf('(');
+      //      if (index == -1) {
+      //        index = value.indexOf('.');
+      //        value = value.substring(index + 1);
+      //      }
       includes.add(value);
     }
     source.add("includes", includes);
@@ -145,8 +146,8 @@ public class ElasticSearchTranslator implements SqlTranslator {
       return;
     }
     LimitMetadata limitMetadata = limit.getLimitMetadata();
-    Object[] searchAfter = (Object[]) translationContext
-        .get(EsTranslationContextConstants.RESULT_SORT_FEATURES);
+    Object[] searchAfter = (Object[]) translationContext.get(
+        EsTranslationContextConstants.RESULT_SORT_FEATURES);
     if (searchAfter != null && searchAfter.length > 0) {
       jsonObject.add("search_after", createSearchAfter(searchAfter));
     } else {
@@ -509,8 +510,8 @@ public class ElasticSearchTranslator implements SqlTranslator {
         translateRelationExpression(expression, jsonElement, having,
             translationContext);
       } else if (expression.getExpressionType() == ExpressionType.ARITHMETIC) {
-        throw new MoqlTranslationException(StringFormater
-            .format("The expression '{}' does not support!",
+        throw new MoqlTranslationException(
+            StringFormater.format("The expression '{}' does not support!",
                 expression.getExpressionType().toString()));
       }
     } else if (operand instanceof ParenExpression) {
@@ -521,8 +522,8 @@ public class ElasticSearchTranslator implements SqlTranslator {
       AbstractFunction function = (AbstractFunction) operand;
       translateFunction(function, jsonElement, translationContext);
     } else {
-      throw new MoqlTranslationException(StringFormater
-          .format("The operand '{}' does not support!",
+      throw new MoqlTranslationException(
+          StringFormater.format("The operand '{}' does not support!",
               operand.getOperandType().toString()));
     }
   }
@@ -729,11 +730,12 @@ public class ElasticSearchTranslator implements SqlTranslator {
 
   protected void translateFunction(AbstractFunction function,
       JsonElement jsonObject, Map<String, Object> translationContext) {
-    ESFunctionTranslator functionTranslator = functionTranslators
-        .get(function.getName());
+    ESFunctionTranslator functionTranslator = functionTranslators.get(
+        function.getName());
     if (functionTranslator == null) {
-      throw new MoqlTranslationException(StringFormater
-          .format("The function '{}' does not support!", function.getName()));
+      throw new MoqlTranslationException(
+          StringFormater.format("The function '{}' does not support!",
+              function.getName()));
     } else {
       functionTranslator.translate(function, jsonObject);
     }
@@ -765,22 +767,26 @@ public class ElasticSearchTranslator implements SqlTranslator {
 
   @Override
   public void addFunctionTranslator(FunctionTranslator functionTranslator) {
-
+    functionTranslators.put(functionTranslator.getFunctionName(),
+        (ESFunctionTranslator) functionTranslator);
   }
 
   @Override
   public void addAllFunctionTranslator(
       List<FunctionTranslator> functiionTranslators) {
-
+    for (FunctionTranslator functionTranslator : functiionTranslators) {
+      functionTranslators.put(functionTranslator.getFunctionName(),
+          (ESFunctionTranslator) functionTranslator);
+    }
   }
 
   @Override
   public FunctionTranslator removeFunctionTranslator(String functionName) {
-    return null;
+    return functionTranslators.remove(functionName);
   }
 
   @Override
   public List<FunctionTranslator> getFunctionTranslators() {
-    return null;
+    return new LinkedList<>(functionTranslators.values());
   }
 }

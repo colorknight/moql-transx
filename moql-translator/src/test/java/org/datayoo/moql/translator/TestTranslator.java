@@ -52,4 +52,24 @@ public class TestTranslator extends TestCase {
       e.printStackTrace();
     }
   }
+
+  public void test2Xml3() {
+    String sql = "select a.* from (select e.out from e where e.in = 'okram' decorate by repeat(1) ) a";
+    try {
+      String xml = MoqlParser.translateMoql2Xml(sql);
+      System.out.println(xml);
+    } catch (MoqlException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    sql = "select a.* from (select e.out['label'].name c from e where e.in = 'okram' decorate by repeat(1) ) a";
+    try {
+      String xml = MoqlParser.translateMoql2Xml(sql);
+      System.out.println(xml);
+    } catch (MoqlException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+  }
+
 }

@@ -177,6 +177,12 @@ public class TestElasticSearchTranslator extends TestCase {
     testESDialect(sql);
   }
 
+  public void testQuery5() {
+    String sql = "SELECT base_raw_detail FROM security_event_report_v1_20221123 t WHERE t.event_code.keyword = '17fb180e-2a57-4028-8c0e-cb344dba788f' order by  \n"
+        + " create_time limit 10";
+    testESDialect(sql);
+  }
+
   public void testSearchAfter() {
     // 带有limit的SQL语句，按照search_after的说明，limit语法中的数字20表示from，将被忽略
     String sql = "select w.* from web w where w.port=443 limit 20,10";

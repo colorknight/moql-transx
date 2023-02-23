@@ -350,8 +350,7 @@ public class MongoDBTranslator implements SqlTranslator {
 
   protected void translateGroupClause(SelectorImpl selector,
       JsonArray jsonArray) {
-    GroupRecordSetOperator groupRecordSetOperator = (GroupRecordSetOperator) selector
-        .getRecordSetOperator();
+    GroupRecordSetOperator groupRecordSetOperator = (GroupRecordSetOperator) selector.getRecordSetOperator();
     Column[] columns = groupRecordSetOperator.getGroupColumns();
     JsonObject group = new JsonObject();
     translateGroupColumns(columns, group);
@@ -410,8 +409,8 @@ public class MongoDBTranslator implements SqlTranslator {
       } else if (expression.getExpressionType() == ExpressionType.RELATION) {
         translateRelationExpression(expression, jsonElement);
       } else if (expression.getExpressionType() == ExpressionType.ARITHMETIC) {
-        throw new MoqlTranslationException(StringFormater
-            .format("The expression '{}' does not support!",
+        throw new MoqlTranslationException(
+            StringFormater.format("The expression '{}' does not support!",
                 expression.getExpressionType().toString()));
       }
     } else if (operand instanceof ParenExpression) {
@@ -421,8 +420,8 @@ public class MongoDBTranslator implements SqlTranslator {
       AbstractFunction function = (AbstractFunction) operand;
       translateFunction(function, jsonElement);
     } else {
-      throw new MoqlTranslationException(StringFormater
-          .format("The operand '{}' does not support!",
+      throw new MoqlTranslationException(
+          StringFormater.format("The operand '{}' does not support!",
               operand.getOperandType().toString()));
     }
   }
@@ -445,8 +444,8 @@ public class MongoDBTranslator implements SqlTranslator {
   protected void translateNotExpression(NotExpression expression,
       JsonElement jsonElement) {
     if (!translateNotOperand(expression.getRightOperand(), jsonElement)) {
-      throw new UnsupportedOperationException(String
-          .format("Does't support NotExpression as '%s'!",
+      throw new UnsupportedOperationException(
+          String.format("Does't support NotExpression as '%s'!",
               expression.toString()));
     }
   }
@@ -616,8 +615,8 @@ public class MongoDBTranslator implements SqlTranslator {
   protected void translateLikeExpression(Operand lOperand, Operand rOperand,
       JsonElement jsonElement) {
     JsonObject regex = new JsonObject();
-    regex.addProperty("$regex", LikeExpression
-        .translatePattern2Regex(rOperand.operate((EntityMap) null).toString()));
+    regex.addProperty("$regex", LikeExpression.translatePattern2Regex(
+        rOperand.operate((EntityMap) null).toString()));
     JsonElement je = regex.get("$regex");
     StringBuilder sbud = new StringBuilder();
     sbud.append(je.getAsString());
@@ -658,8 +657,8 @@ public class MongoDBTranslator implements SqlTranslator {
 
   protected void translateFunction(AbstractFunction function,
       JsonElement jsonObject) {
-    MongoFunctionTranslator functionTranslator = functionTranslators
-        .get(function.getName());
+    MongoFunctionTranslator functionTranslator = functionTranslators.get(
+        function.getName());
     if (functionTranslator == null) {
       if (function.getParameters().size() == 1) {
         JsonElement je = translateUnaryOperand(function.getParameters().get(0));
@@ -700,23 +699,29 @@ public class MongoDBTranslator implements SqlTranslator {
   }
 
   @Override
-  public void addFunctionTranslator(FunctionTranslator functionTranslator) {
-
+  public synchronized void addFunctionTranslator(
+      FunctionTranslator functionTranslator) {
+    functionTranslators.put(functionTranslator.getFunctionName(),
+        (MongoFunctionTranslator) functionTranslator);
   }
 
   @Override
-  public void addAllFunctionTranslator(
+  public synchronized void addAllFunctionTranslator(
       List<FunctionTranslator> functiionTranslators) {
-
+    for (FunctionTranslator functionTranslator : functiionTranslators) {
+      functionTranslators.put(functionTranslator.getFunctionName(),
+          (MongoFunctionTranslator) functionTranslator);
+    }
   }
 
   @Override
-  public FunctionTranslator removeFunctionTranslator(String functionName) {
-    return null;
+  public synchronized FunctionTranslator removeFunctionTranslator(
+      String functionName) {
+    return functionTranslators.remove(functionName);
   }
 
   @Override
-  public List<FunctionTranslator> getFunctionTranslators() {
-    return null;
+  public synchronized List<FunctionTranslator> getFunctionTranslators() {
+    return new LinkedList<>(functionTranslators.values());
   }
 }
