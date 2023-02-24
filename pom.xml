@@ -14,6 +14,7 @@
     <modules>
         <module>moql-translator</module>
         <module>moql-querier</module>
+        <module>moql-querier-milvus</module>
     </modules>
     <packaging>pom</packaging>
 
