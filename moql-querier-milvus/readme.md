@@ -50,5 +50,9 @@ R<SearchResults> respSearch = milvusClient.search(searchParam);
 ​	模块的maven坐标
 
 ```
-
+        <dependency>
+            <groupId>org.datayoo.moql</groupId>
+            <artifactId>moql-querier-milvus</artifactId>
+            <version>1.0.0</version>
+        </dependency>
 ```
