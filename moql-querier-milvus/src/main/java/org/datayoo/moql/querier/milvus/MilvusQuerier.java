@@ -198,6 +198,7 @@ public class MilvusQuerier implements DataQuerier {
     for (FieldSchema fieldSchema : fieldSchemas) {
       ColumnMetadata columnMetadata = new ColumnMetadata(fieldSchema.getName(),
           fieldSchema.getName());
+      columnMetadata.setDataType(fieldSchema.getDataType());
       columnMetadatas.add(columnMetadata);
     }
     return columnMetadatas;
@@ -255,23 +256,25 @@ public class MilvusQuerier implements DataQuerier {
     SearchResultData searchResultData = result.getData().getResults();
     List<ColumnMetadata> columnMetadatas = selectorMetadata.getColumns()
         .getColumns();
-    setOutputDataType(columnMetadatas, searchResultData.getFieldsDataList());
+    //    setOutputDataType(columnMetadatas, searchResultData.getFieldsDataList());
+    int[] posMappings = posMappings(columnMetadatas,
+        searchResultData.getFieldsDataList());
     RecordSetMetadata recordSetMetadata = new RecordSetMetadata(
         getOutputColumns(columnMetadatas, getIdType(searchResultData)), null);
     return new RecordSetImpl(recordSetMetadata, new Date(), new Date(),
-        toRecords(searchResultData));
+        toRecords(searchResultData, posMappings));
   }
 
-  protected void setOutputDataType(List<ColumnMetadata> columnMetadatas,
-      List<FieldData> fieldDatas) {
-    Iterator<ColumnMetadata> colIt = columnMetadatas.iterator();
-    Iterator<FieldData> fdIt = fieldDatas.iterator();
-    while (colIt.hasNext()) {
-      ColumnMetadata columnMetadata = colIt.next();
-      FieldData fieldData = fdIt.next();
-      columnMetadata.setDataType(fieldData.getType());
-    }
-  }
+  //  protected void setOutputDataType(List<ColumnMetadata> columnMetadatas,
+  //      List<FieldData> fieldDatas) {
+  //    Iterator<ColumnMetadata> colIt = columnMetadatas.iterator();
+  //    Iterator<FieldData> fdIt = fieldDatas.iterator();
+  //    while (colIt.hasNext()) {
+  //      ColumnMetadata columnMetadata = colIt.next();
+  //      FieldData fieldData = fdIt.next();
+  //      columnMetadata.setDataType(fieldData.getType());
+  //    }
+  //  }
 
   protected DataType getIdType(SearchResultData searchResultData) {
     IDs iDs = searchResultData.getIds();
@@ -288,11 +291,34 @@ public class MilvusQuerier implements DataQuerier {
     QueryResults queryResults = result.getData();
     List<ColumnMetadata> columnMetadatas = selectorMetadata.getColumns()
         .getColumns();
-    setOutputDataType(columnMetadatas, queryResults.getFieldsDataList());
+    //    setOutputDataType(columnMetadatas, queryResults.getFieldsDataList());
+    int[] posMappings = posMappings(columnMetadatas,
+        result.getData().getFieldsDataList());
     RecordSetMetadata recordSetMetadata = new RecordSetMetadata(
         (List) columnMetadatas, null);
     return new RecordSetImpl(recordSetMetadata, new Date(), new Date(),
-        toRecords(queryResults));
+        toRecords(queryResults, posMappings));
+  }
+
+  protected int[] posMappings(List<ColumnMetadata> columnMetadatas,
+      List<FieldData> fieldDatas) {
+    int[] posMappings = new int[columnMetadatas.size()];
+    int i = 0;
+    for (FieldData fieldData : fieldDatas) {
+      posMappings[i++] = findPos(columnMetadatas, fieldData.getFieldName());
+    }
+    return posMappings;
+  }
+
+  protected int findPos(List<ColumnMetadata> columnMetadatas, String name) {
+    int i = 0;
+    for (ColumnMetadata columnMetadata : columnMetadatas) {
+      if (columnMetadata.getName().equals(name))
+        return i;
+      i++;
+    }
+    throw new IllegalArgumentException(
+        String.format("There is no column named '%s'!", name));
   }
 
   protected List getOutputColumns(List<ColumnMetadata> columnMetadatas,
@@ -306,7 +332,8 @@ public class MilvusQuerier implements DataQuerier {
     return columnMetadatas;
   }
 
-  protected List<Object[]> toRecords(SearchResultData resultData) {
+  protected List<Object[]> toRecords(SearchResultData resultData,
+      int[] posMappings) {
     List<Object[]> records = new LinkedList<>();
     int fieldCount = resultData.getFieldsDataCount() + 2;
     Iterator idIt = getIdIterator(resultData.getIds());
@@ -317,16 +344,17 @@ public class MilvusQuerier implements DataQuerier {
       Object[] record = new Object[fieldCount];
       record[0] = idIt.next();
       record[1] = idScoreIt.next();
-      int i = 2;
+      int i = 0;
       for (Iterator it : fieldIterators) {
-        record[i++] = it.next();
+        record[posMappings[i++] + 2] = it.next();
       }
       records.add(record);
     }
     return records;
   }
 
-  protected List<Object[]> toRecords(QueryResults queryResults) {
+  protected List<Object[]> toRecords(QueryResults queryResults,
+      int[] posMappings) {
     List<Object[]> records = new LinkedList<>();
     List<Iterator> fieldIterators = getFieldIterators(
         queryResults.getFieldsDataList());
@@ -339,7 +367,7 @@ public class MilvusQuerier implements DataQuerier {
           i++;
           continue;
         }
-        record[i++] = it.next();
+        record[posMappings[i++]] = it.next();
         hasValue++;
       }
       if (hasValue == 0)
