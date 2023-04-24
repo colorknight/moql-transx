@@ -7,6 +7,8 @@ import io.milvus.client.MilvusServiceClient;
 import io.milvus.grpc.*;
 import io.milvus.param.ConnectParam;
 import io.milvus.param.R;
+import io.milvus.param.collection.DescribeCollectionParam;
+import io.milvus.param.dml.QueryParam;
 import io.milvus.param.dml.SearchParam;
 import io.milvus.response.FieldDataWrapper;
 import org.apache.commons.lang3.Validate;
@@ -14,10 +16,7 @@ import org.datayoo.moql.*;
 import org.datayoo.moql.core.*;
 import org.datayoo.moql.core.factory.MoqlFactoryImpl;
 import org.datayoo.moql.core.table.CommonTable;
-import org.datayoo.moql.core.table.SelectorTable;
-import org.datayoo.moql.metadata.ColumnMetadata;
-import org.datayoo.moql.metadata.LimitMetadata;
-import org.datayoo.moql.metadata.SelectorMetadata;
+import org.datayoo.moql.metadata.*;
 import org.datayoo.moql.operand.OperandFactory;
 import org.datayoo.moql.operand.expression.AbstractOperationExpression;
 import org.datayoo.moql.operand.expression.ParenExpression;
@@ -31,6 +30,7 @@ import org.datayoo.moql.operand.function.Function;
 import org.datayoo.moql.querier.DataQuerier;
 import org.datayoo.moql.querier.SupplementReader;
 
+import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.util.*;
 
@@ -135,35 +135,173 @@ public class MilvusQuerier implements DataQuerier {
     Validate.notEmpty(sql, "sql is empty!");
     try {
       SelectorDefinition selectorDefinition = parseMoql(sql);
-      SearchParam searchParam = buildSearchParam(selectorDefinition);
-      R<SearchResults> result = milvusClient.search(searchParam);
-      return toRecordSet((SelectorMetadata) selectorDefinition, result);
+      decorateSelectorDefinition(selectorDefinition);
+      BuilderProxy builderProxy = createBuilder(selectorDefinition);
+      if (builderProxy.isSearchMode()) {
+        SearchParam searchParam = (SearchParam) builderProxy.build();
+        R<SearchResults> result = milvusClient.search(searchParam);
+        return toSearchRecordSet((SelectorMetadata) selectorDefinition, result);
+      } else {
+        QueryParam queryParam = (QueryParam) builderProxy.build();
+        R<QueryResults> result = milvusClient.query(queryParam);
+        return toQueryRecordSet((SelectorMetadata) selectorDefinition, result);
+      }
     } catch (MoqlException e) {
       throw new IOException("Parse failed!", e);
     }
+  }
+
+  protected void decorateSelectorDefinition(
+      SelectorDefinition selectorDefinition) {
+    if (selectorDefinition instanceof SelectorMetadata) {
+      SelectorMetadata selectorMetadata = (SelectorMetadata) selectorDefinition;
+      List<ColumnMetadata> columnMetadatas = selectorMetadata.getColumns()
+          .getColumns();
+      if (columnMetadatas.size() == 1) {
+        ColumnMetadata columnMetadata = columnMetadatas.get(0);
+        if (columnMetadata.getValue().equals("*")) {
+          String collectionName = getCollectionName(
+              selectorMetadata.getTables());
+          List<FieldSchema> fieldSchemas = getFieldSchemas(collectionName);
+          selectorMetadata.getColumns()
+              .setColumns(getCollectionFields(fieldSchemas));
+          if (selectorMetadata.getWhere() == null) {
+            selectorMetadata.setWhere(
+                buildDefaultConditionMetadata(fieldSchemas));
+          }
+        }
+      }
+    } else {
+      throw new UnsupportedOperationException("");
+    }
+  }
+
+  protected String getCollectionName(TablesMetadata tablesMetadata) {
+    QueryableMetadata queryableMetadata = tablesMetadata.getTables().get(0);
+    if (!(queryableMetadata instanceof TableMetadata)) {
+      throw new UnsupportedOperationException(
+          "Unsupport multi tables operation!");
+    }
+    return ((TableMetadata) queryableMetadata).getName();
+  }
+
+  protected List<FieldSchema> getFieldSchemas(String collection) {
+    R<DescribeCollectionResponse> respDescribeCollection = milvusClient.describeCollection(
+        DescribeCollectionParam.newBuilder().withCollectionName(collection)
+            .build());
+    return respDescribeCollection.getData().getSchema().getFieldsList();
+  }
+
+  protected List<ColumnMetadata> getCollectionFields(
+      List<FieldSchema> fieldSchemas) {
+    List<ColumnMetadata> columnMetadatas = new LinkedList<>();
+    for (FieldSchema fieldSchema : fieldSchemas) {
+      ColumnMetadata columnMetadata = new ColumnMetadata(fieldSchema.getName(),
+          fieldSchema.getName());
+      columnMetadatas.add(columnMetadata);
+    }
+    return columnMetadatas;
+  }
+
+  protected ConditionMetadata buildDefaultConditionMetadata(
+      List<FieldSchema> fieldSchemas) {
+    for (FieldSchema fieldSchema : fieldSchemas) {
+      DataType dataType = fieldSchema.getDataType();
+      if (dataType == DataType.Float || dataType == DataType.Double
+          || dataType == DataType.Int8 || dataType == DataType.Int16
+          || dataType == DataType.Int32 || dataType == DataType.Int64) {
+        OperationMetadata operationMetadata = new RelationOperationMetadata(">",
+            fieldSchema.getName(), "0");
+        return new ConditionMetadata(operationMetadata);
+      } else if (dataType == DataType.Bool) {
+        OperationMetadata operationMetadata = new RelationOperationMetadata(
+            "==", fieldSchema.getName(), "true");
+        return new ConditionMetadata(operationMetadata);
+      } else if (dataType == DataType.String) {
+        OperationMetadata operationMetadata = new RelationOperationMetadata(
+            "!=", fieldSchema.getName(), " ");
+        return new ConditionMetadata(operationMetadata);
+      }
+    }
+    return null;
   }
 
   public SearchParam buildSearchParam(String sql) throws IOException {
     try {
       SelectorDefinition selectorDefinition = parseMoql(sql);
-      return buildSearchParam(selectorDefinition);
+      decorateSelectorDefinition(selectorDefinition);
+      BuilderProxy builderProxy = createBuilder(selectorDefinition);
+      return (SearchParam) builderProxy.build();
     } catch (MoqlException e) {
       throw new IOException("Parse failed!", e);
     }
   }
 
-  protected RecordSet toRecordSet(SelectorMetadata selectorMetadata,
-      R<SearchResults> result) {
-    RecordSetMetadata recordSetMetadata = new RecordSetMetadata(
-        getOutputColumns(selectorMetadata.getColumns().getColumns()), null);
-    return new RecordSetImpl(recordSetMetadata, new Date(), new Date(),
-        toRecords(result.getData().getResults()));
+  public QueryParam buildQueryParam(String sql) throws IOException {
+    try {
+      SelectorDefinition selectorDefinition = parseMoql(sql);
+      decorateSelectorDefinition(selectorDefinition);
+      BuilderProxy builderProxy = createBuilder(selectorDefinition);
+      return (QueryParam) builderProxy.build();
+    } catch (MoqlException e) {
+      throw new IOException("Parse failed!", e);
+    }
   }
 
-  protected List getOutputColumns(List<ColumnMetadata> columnMetadatas) {
+  protected RecordSet toSearchRecordSet(SelectorMetadata selectorMetadata,
+      R<SearchResults> result) {
+    if (result.getData() == null)
+      throw new MoqlRuntimeException(result.getException());
+    SearchResultData searchResultData = result.getData().getResults();
+    List<ColumnMetadata> columnMetadatas = selectorMetadata.getColumns()
+        .getColumns();
+    setOutputDataType(columnMetadatas, searchResultData.getFieldsDataList());
+    RecordSetMetadata recordSetMetadata = new RecordSetMetadata(
+        getOutputColumns(columnMetadatas, getIdType(searchResultData)), null);
+    return new RecordSetImpl(recordSetMetadata, new Date(), new Date(),
+        toRecords(searchResultData));
+  }
+
+  protected void setOutputDataType(List<ColumnMetadata> columnMetadatas,
+      List<FieldData> fieldDatas) {
+    Iterator<ColumnMetadata> colIt = columnMetadatas.iterator();
+    Iterator<FieldData> fdIt = fieldDatas.iterator();
+    while (colIt.hasNext()) {
+      ColumnMetadata columnMetadata = colIt.next();
+      FieldData fieldData = fdIt.next();
+      columnMetadata.setDataType(fieldData.getType());
+    }
+  }
+
+  protected DataType getIdType(SearchResultData searchResultData) {
+    IDs iDs = searchResultData.getIds();
+    if (iDs.hasIntId())
+      return DataType.Int64;
+    else
+      return DataType.String;
+  }
+
+  protected RecordSet toQueryRecordSet(SelectorMetadata selectorMetadata,
+      R<QueryResults> result) {
+    if (result.getData() == null)
+      throw new MoqlRuntimeException(result.getException());
+    QueryResults queryResults = result.getData();
+    List<ColumnMetadata> columnMetadatas = selectorMetadata.getColumns()
+        .getColumns();
+    setOutputDataType(columnMetadatas, queryResults.getFieldsDataList());
+    RecordSetMetadata recordSetMetadata = new RecordSetMetadata(
+        (List) columnMetadatas, null);
+    return new RecordSetImpl(recordSetMetadata, new Date(), new Date(),
+        toRecords(queryResults));
+  }
+
+  protected List getOutputColumns(List<ColumnMetadata> columnMetadatas,
+      DataType idType) {
     ColumnMetadata columnMetadata = new ColumnMetadata("id", "id");
     columnMetadatas.add(0, columnMetadata);
+    columnMetadata.setDataType(idType);
     columnMetadata = new ColumnMetadata("idScore", "idScore");
+    columnMetadata.setDataType(DataType.Float);
     columnMetadatas.add(1, columnMetadata);
     return columnMetadatas;
   }
@@ -173,7 +311,8 @@ public class MilvusQuerier implements DataQuerier {
     int fieldCount = resultData.getFieldsDataCount() + 2;
     Iterator idIt = getIdIterator(resultData.getIds());
     Iterator idScoreIt = resultData.getScoresList().iterator();
-    List<Iterator> fieldIterators = getFieldIterators(resultData);
+    List<Iterator> fieldIterators = getFieldIterators(
+        resultData.getFieldsDataList());
     while (idIt.hasNext()) {
       Object[] record = new Object[fieldCount];
       record[0] = idIt.next();
@@ -182,6 +321,29 @@ public class MilvusQuerier implements DataQuerier {
       for (Iterator it : fieldIterators) {
         record[i++] = it.next();
       }
+      records.add(record);
+    }
+    return records;
+  }
+
+  protected List<Object[]> toRecords(QueryResults queryResults) {
+    List<Object[]> records = new LinkedList<>();
+    List<Iterator> fieldIterators = getFieldIterators(
+        queryResults.getFieldsDataList());
+    while (true) {
+      Object[] record = new Object[fieldIterators.size()];
+      int i = 0;
+      int hasValue = 0;
+      for (Iterator it : fieldIterators) {
+        if (!it.hasNext()) {
+          i++;
+          continue;
+        }
+        record[i++] = it.next();
+        hasValue++;
+      }
+      if (hasValue == 0)
+        break;
       records.add(record);
     }
     return records;
@@ -197,8 +359,7 @@ public class MilvusQuerier implements DataQuerier {
     }
   }
 
-  protected List<Iterator> getFieldIterators(SearchResultData resultData) {
-    List<FieldData> fieldDatas = resultData.getFieldsDataList();
+  protected List<Iterator> getFieldIterators(List<FieldData> fieldDatas) {
     List<Iterator> fieldIterators = new LinkedList<>();
     for (FieldData fieldData : fieldDatas) {
       FieldDataWrapper dataWrapper = new FieldDataWrapper(fieldData);
@@ -207,7 +368,7 @@ public class MilvusQuerier implements DataQuerier {
     return fieldIterators;
   }
 
-  protected SearchParam buildSearchParam(SelectorDefinition selectorDefinition)
+  protected BuilderProxy createBuilder(SelectorDefinition selectorDefinition)
       throws MoqlException {
     Selector selector = moqlFactory.createSelector(selectorDefinition);
     if (selector instanceof SetlectorImpl)
@@ -222,24 +383,25 @@ public class MilvusQuerier implements DataQuerier {
     if (selectorImpl.getOrder() != null)
       throw new UnsupportedOperationException(
           "Unsupport order clause operation!");
-    SearchParam.Builder builder = SearchParam.newBuilder();
+
+    BuilderProxy builder = new BuilderProxy();
     buildFromClause(builder, selectorImpl.getTables());
     buildSelectClause(builder, selectorImpl.getRecordSetOperator());
     Map<String, Object> paramMap = new HashMap<>();
     if (selectorImpl.getWhere() != null) {
-      buildWhereClause(builder, selectorImpl.getWhere(), paramMap);
+      buildWhereClause(builder, selectorImpl.getWhere());
     }
     if (selectorImpl.getLimit() != null) {
-      buildLimitClause(builder, selectorImpl.getLimit(), paramMap);
+      buildLimitClause(builder, selectorImpl.getLimit());
     }
     if (paramMap.size() > 0) {
       Gson gson = new GsonBuilder().create();
       builder.withParams(gson.toJson(paramMap));
     }
-    return builder.build();
+    return builder;
   }
 
-  protected void buildFromClause(SearchParam.Builder builder, Tables tables) {
+  protected void buildFromClause(BuilderProxy builder, Tables tables) {
     if (!(tables.getQueryable() instanceof CommonTable)) {
       throw new UnsupportedOperationException(
           "Unsupport multi tables operation!");
@@ -248,7 +410,7 @@ public class MilvusQuerier implements DataQuerier {
     builder.withCollectionName(commonTable.getTableMetadata().getName());
   }
 
-  protected void buildSelectClause(SearchParam.Builder builder,
+  protected void buildSelectClause(BuilderProxy builder,
       RecordSetOperator recordSetOperator) {
     List<String> outputFields = new LinkedList<>();
     for (Column column : recordSetOperator.getColumns().getColumns()) {
@@ -264,37 +426,34 @@ public class MilvusQuerier implements DataQuerier {
     builder.withOutFields(outputFields);
   }
 
-  protected void buildWhereClause(SearchParam.Builder builder,
-      Condition condition, Map<String, Object> paramMap) throws MoqlException {
+  protected void buildWhereClause(BuilderProxy builder, Condition condition)
+      throws MoqlException {
     StringBuilder stringBuilder = new StringBuilder();
-    buildOperand(builder, condition.getOperand(), stringBuilder, paramMap);
+    buildOperand(builder, condition.getOperand(), stringBuilder);
     if (stringBuilder.length() > 0) {
       builder.withExpr(stringBuilder.toString());
     }
   }
 
-  protected void buildOperand(SearchParam.Builder builder, Operand operand,
-      StringBuilder stringBuilder, Map<String, Object> paramMap)
-      throws MoqlException {
+  protected void buildOperand(BuilderProxy builder, Operand operand,
+      StringBuilder stringBuilder) throws MoqlException {
     if (operand instanceof ParenExpression) {
       ParenExpression parenExpression = (ParenExpression) operand;
-      buildOperand(builder, parenExpression.getOperand(), stringBuilder,
-          paramMap);
+      buildOperand(builder, parenExpression.getOperand(), stringBuilder);
     } else if (operand instanceof OperandExpression) {
       OperandExpression operandExpression = (OperandExpression) operand;
-      buildOperand(builder, operandExpression.getRightOperand(), stringBuilder,
-          paramMap);
+      buildOperand(builder, operandExpression.getRightOperand(), stringBuilder);
     } else if (operand instanceof NotExpression
         || operand instanceof OrExpression
         || operand instanceof AndExpression) {
       AbstractOperationExpression logicExpression = (AbstractOperationExpression) operand;
       StringBuilder temp1 = new StringBuilder();
-      buildOperand(builder, logicExpression.getLeftOperand(), temp1, paramMap);
+      buildOperand(builder, logicExpression.getLeftOperand(), temp1);
       if (temp1.length() > 0) {
         stringBuilder.append(temp1);
       }
       StringBuilder temp2 = new StringBuilder();
-      buildOperand(builder, logicExpression.getRightOperand(), temp2, paramMap);
+      buildOperand(builder, logicExpression.getRightOperand(), temp2);
       if (temp2.length() > 0) {
         if (temp1.length() > 0) {
           stringBuilder.append(' ');
@@ -314,14 +473,14 @@ public class MilvusQuerier implements DataQuerier {
       temp.append(']');
       stringBuilder.append(temp);
     } else if (operand instanceof Function) {
-      buildFunction(builder, (Function) operand, stringBuilder, paramMap);
+      buildFunction(builder, (Function) operand, stringBuilder);
     } else {
       stringBuilder.append(operand.toString());
     }
   }
 
-  protected void buildFunction(SearchParam.Builder builder, Function function,
-      StringBuilder stringBuilder, Map<String, Object> paramMap) {
+  protected void buildFunction(BuilderProxy builder, Function function,
+      StringBuilder stringBuilder) {
     if (function.getName().equals(RESERVED_FUNC_PARTITIONBY)) {
       PartitionBy partitionBy = (PartitionBy) function;
       builder.withPartitionNames(partitionBy.getPartitions());
@@ -348,21 +507,20 @@ public class MilvusQuerier implements DataQuerier {
       builder.withTravelTimestamp(travelTimestamp.getTravelTimestamp());
     } else if (function.getName().equals(RESERVED_FUNC_NPROBE)) {
       NProbe nProbe = (NProbe) function;
-      paramMap.put("nprobe", nProbe.getnProbe());
+      builder.withNProbe(nProbe.getnProbe());
     } else if (function.getName().equals(RESERVED_FUNC_EF)) {
       Ef ef = (Ef) function;
-      paramMap.put("ef", ef.getEf());
+      builder.withEf(ef.getEf());
     } else if (function.getName().equals(RESERVED_FUNC_SEARCHK)) {
       SearchK searchK = (SearchK) function;
-      paramMap.put("search_k", searchK.getSearchK());
+      builder.withSearchK(searchK.getSearchK());
     }
   }
 
-  protected void buildLimitClause(SearchParam.Builder builder, Limit limit,
-      Map<String, Object> paramMap) {
+  protected void buildLimitClause(BuilderProxy builder, Limit limit) {
     LimitMetadata limitMetadata = limit.getLimitMetadata();
     builder.withTopK(limitMetadata.getValue());
     if (limitMetadata.getOffset() != 0)
-      paramMap.put("offset", limitMetadata.getOffset());
+      builder.withOffset(limitMetadata.getOffset());
   }
 }
