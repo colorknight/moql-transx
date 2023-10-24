@@ -62,24 +62,28 @@ public class MilvusQuerier implements DataQuerier {
   protected static MoqlFactoryImpl moqlFactory = new MoqlFactoryImpl();
 
   static {
+    ClassLoader classLoader = MilvusQuerier.class.getClassLoader();
     OperandFactory operandFactory = new OperandFactoryImpl();
-    operandFactory.registFunction(VMatch.FUNCTION_NAME, VMatch.class.getName());
+    operandFactory.registFunction(VMatch.FUNCTION_NAME, VMatch.class.getName(),
+        classLoader);
     operandFactory.registFunction(PartitionBy.FUNCTION_NAME,
-        PartitionBy.class.getName());
+        PartitionBy.class.getName(), classLoader);
     operandFactory.registFunction(ConsistencyLevel.FUNCTION_NAME,
-        ConsistencyLevel.class.getName());
+        ConsistencyLevel.class.getName(), classLoader);
     operandFactory.registFunction(GracefulTime.FUNCTION_NAME,
-        GracefulTime.class.getName());
+        GracefulTime.class.getName(), classLoader);
     operandFactory.registFunction(GuaranteeTimestamp.FUNCTION_NAME,
-        GuaranteeTimestamp.class.getName());
+        GuaranteeTimestamp.class.getName(), classLoader);
     operandFactory.registFunction(TravelTimestamp.FUNCTION_NAME,
-        TravelTimestamp.class.getName());
+        TravelTimestamp.class.getName(), classLoader);
     operandFactory.registFunction(RoundDecimal.FUNCTION_NAME,
-        RoundDecimal.class.getName());
-    operandFactory.registFunction(NProbe.FUNCTION_NAME, NProbe.class.getName());
-    operandFactory.registFunction(Ef.FUNCTION_NAME, Ef.class.getName());
+        RoundDecimal.class.getName(), classLoader);
+    operandFactory.registFunction(NProbe.FUNCTION_NAME, NProbe.class.getName(),
+        classLoader);
+    operandFactory.registFunction(Ef.FUNCTION_NAME, Ef.class.getName(),
+        classLoader);
     operandFactory.registFunction(SearchK.FUNCTION_NAME,
-        SearchK.class.getName());
+        SearchK.class.getName(), classLoader);
     moqlFactory.setOperandFactory(operandFactory);
   }
 
