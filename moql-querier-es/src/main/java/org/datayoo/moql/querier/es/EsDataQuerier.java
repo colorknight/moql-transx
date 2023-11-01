@@ -1,5 +1,6 @@
 package org.datayoo.moql.querier.es;
 
+import com.google.gson.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.http.HttpEntity;
@@ -7,7 +8,9 @@ import org.apache.http.HttpHost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.util.EntityUtils;
+import org.datayoo.moql.*;
 import org.datayoo.moql.core.RecordSetImpl;
+import org.datayoo.moql.metadata.*;
 import org.datayoo.moql.operand.OperandContextArrayList;
 import org.datayoo.moql.operand.OperandFactory;
 import org.datayoo.moql.operand.factory.OperandFactoryImpl;
