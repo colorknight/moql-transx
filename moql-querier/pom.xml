@@ -11,13 +11,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.datayoo.moql</groupId>
-    <version>1.2.1</version>
+    <version>1.2.2</version>
     <packaging>jar</packaging>
     <artifactId>moql-querier</artifactId>
 
     <name>moql-querier</name>
-    <!-- FIXME change it to the project's website -->
-    <url>http://www.example.com</url>
 
     <dependencies>
         <dependency>
@@ -41,7 +39,6 @@
             <artifactId>moql-translator</artifactId>
             <version>RELEASE</version>
         </dependency>
-
     </dependencies>
 
     <build>
