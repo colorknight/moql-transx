@@ -11,6 +11,11 @@ public class TestElasticSearchTranslator2 extends TestCase {
     testESDialect(sql);
   }
 
+  public void testJoin() {
+    String sql = "select ip.fw, ip.pri, ip.recorder, ip.proto from ip3 ip where ip.pri = 6 order by ip.src LIMIT 1000";
+    testESDialect(sql);
+  }
+
   public void testConditionQuery() {
     String sql =
         "select ip.* from ip3 ip where (ip.sport=8888 or ip.sport=9999) and "

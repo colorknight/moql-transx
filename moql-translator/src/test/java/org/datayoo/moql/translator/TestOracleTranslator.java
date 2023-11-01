@@ -19,8 +19,8 @@ public class TestOracleTranslator extends TestCase {
   protected void testSqlDialect(String sql, boolean validate) {
     try {
       SelectorDefinition selectorDefiniton = MoqlParser.parseMoql(sql);
-      String moql = MoqlTranslator
-          .translateMetadata2Sql(selectorDefiniton, sqlDialectType);
+      String moql = MoqlTranslator.translateMetadata2Sql(selectorDefiniton,
+          sqlDialectType);
       moql = moql.trim();
       System.out.println(sql);
       System.out.println(moql);
@@ -35,6 +35,16 @@ public class TestOracleTranslator extends TestCase {
   public void testOneSingleTableSelector() {
     String sql = "select a.id, a.name, a.num % 500 from BeanA a where a.num % 500 > 10 order by 3 asc";
     testSqlDialect(sql, true);
+  }
+
+  public void testLimit() throws MoqlException {
+    String sql = "select a.* from T_COUSE a limit 2,50";
+    SelectorDefinition selectorDefiniton = MoqlParser.parseMoql(sql);
+
+    String moql = MoqlTranslator.translateMetadata2Sql(selectorDefiniton,
+        SqlDialectType.SQLSERVER);
+
+    System.out.println(moql);
   }
 
   public void testGroupOneTableSelector() {
