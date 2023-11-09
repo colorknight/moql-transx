@@ -48,76 +48,59 @@
                     <target>1.8</target>
                 </configuration>
             </plugin>
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-gpg-plugin</artifactId>-->
-<!--                <version>1.6</version>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <id>sign-artifacts</id>-->
-<!--                        <phase>verify</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>sign</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <gpgArguments>-->
-<!--                                <arg>&#45;&#45;pinentry-mode</arg>-->
-<!--                                <arg>loopback</arg>-->
-<!--                            </gpgArguments>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.6</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                        <configuration>
+                            <gpgArguments>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                            </gpgArguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
-<!--    <profiles>-->
-<!--        <profile>-->
-<!--            <id>disable-javadoc-doclint</id>-->
-<!--            <activation>-->
-<!--                <jdk>[1.8,)</jdk>-->
-<!--            </activation>-->
-<!--            <properties>-->
-<!--                <additionalparam>-Xdoclint:none</additionalparam>-->
-<!--            </properties>-->
-<!--        </profile>-->
-<!--    </profiles>-->
-<!--    <licenses>-->
-<!--        <license>-->
-<!--            <name>The Apache Software License, Version 2.0</name>-->
-<!--            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>-->
-<!--            <distribution>repo</distribution>-->
-<!--        </license>-->
-<!--    </licenses>-->
-<!--    <scm>-->
-<!--        <tag>master</tag>-->
-<!--        <url>git@github.com:colorknight/moql-transx.git</url>-->
-<!--        <connection>scm:git:git@github.com:colorknight/moql-transx.git</connection>-->
-<!--        <developerConnection>scm:git:git@github.com:colorknight/moql-transx.git-->
-<!--        </developerConnection>-->
-<!--    </scm>-->
-<!--    <developers>-->
-<!--        <developer>-->
-<!--            <name>colorknight</name>-->
-<!--            <email>ttd_ttt@sina.com</email>-->
-<!--            <organization>datayoo.org</organization>-->
-<!--        </developer>-->
-<!--    </developers>-->
-
-    <distributionManagement>
-        <repository>
-            <id>rdc-releases</id>
-            <name>Proj Release Repository</name>
-            <url>
-                https://packages.aliyun.com/maven/repository/2246124-release-68ugW3
-            </url>
-        </repository>
-        <snapshotRepository>
-            <id>rdc-snapshots</id>
-            <name>Proj Release Repository</name>
-            <url>
-                https://packages.aliyun.com/maven/repository/2246124-snapshot-fTYQY2
-            </url>
-        </snapshotRepository>
-    </distributionManagement>
+    <profiles>
+        <profile>
+            <id>disable-javadoc-doclint</id>
+            <activation>
+                <jdk>[1.8,)</jdk>
+            </activation>
+            <properties>
+                <additionalparam>-Xdoclint:none</additionalparam>
+            </properties>
+        </profile>
+    </profiles>
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <scm>
+        <tag>master</tag>
+        <url>git@github.com:colorknight/moql-transx.git</url>
+        <connection>scm:git:git@github.com:colorknight/moql-transx.git</connection>
+        <developerConnection>scm:git:git@github.com:colorknight/moql-transx.git
+        </developerConnection>
+    </scm>
+    <developers>
+        <developer>
+            <name>colorknight</name>
+            <email>ttd_ttt@sina.com</email>
+            <organization>datayoo.org</organization>
+        </developer>
+    </developers>
 
 </project>
