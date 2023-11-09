@@ -15,31 +15,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.datayoo.moql.querier.milvus;
+package org.datayoo.moql.querier.tcvector;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.datayoo.moql.EntityMap;
 import org.datayoo.moql.Operand;
 import org.datayoo.moql.operand.function.AbstractFunction;
 
-import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
  * @author Tang Tadin
  */
-public class PartitionBy extends AbstractFunction {
+public class WithVectors extends AbstractFunction {
 
-  public static final String FUNCTION_NAME = "partitionBy";
+  public static final String FUNCTION_NAME = "withVectors";
 
-  protected List<String> partitions;
+  protected List<List<Double>> vectorArray = new LinkedList<>();
 
-  public PartitionBy(List<Operand> parameters) {
+
+  public WithVectors(List<Operand> parameters) {
     super(FUNCTION_NAME, 1, parameters);
-    String v = (String) parameters.get(0).operate((EntityMap) null);
-    String[] segs = v.split(",");
-    if (segs.length == 0)
-      throw new IllegalArgumentException("Invalid partitions");
-    partitions = Arrays.asList(segs);
+    String v = (String) getParameters().get(0).operate((EntityMap) null);
+    Gson gson = new GsonBuilder().create();
+    vectorArray = toDouble(gson.fromJson(v, List.class));
+  }
+
+  protected List toDouble(List vectorArray) {
+    List nVectorArray = new LinkedList();
+    for (Object o : vectorArray) {
+      List l = (List) o;
+      List nl = new LinkedList();
+      for (Object o1 : l) {
+        Number n = (Number) o1;
+        nl.add(n.doubleValue());
+      }
+      nVectorArray.add(nl);
+    }
+    return nVectorArray;
   }
 
   /* (non-Javadoc)
@@ -55,7 +70,7 @@ public class PartitionBy extends AbstractFunction {
     throw new UnsupportedOperationException();
   }
 
-  public List<String> getPartitions() {
-    return partitions;
+  public List<List<Double>> getVectorArray() {
+    return vectorArray;
   }
 }
