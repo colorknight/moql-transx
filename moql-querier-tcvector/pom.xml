@@ -13,7 +13,6 @@
     <version>1.0.0</version>
 
     <name>moql-querier-tcvector</name>
-    <url>http://maven.apache.org</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -39,7 +38,6 @@
             <artifactId>vectordatabase-sdk-java</artifactId>
             <version>1.0.2</version>
         </dependency>
-
 
     </dependencies>
 </project>
