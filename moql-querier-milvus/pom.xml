@@ -33,7 +33,7 @@
         <dependency>
             <groupId>org.datayoo.moql</groupId>
             <artifactId>moql-querier</artifactId>
-            <version>1.2.1</version>
+            <version>RELEASE</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
