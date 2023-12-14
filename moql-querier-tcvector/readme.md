@@ -21,10 +21,16 @@ RecordSet recordSet = querier.query(sql);
 
 ​	下表将给出TcVector查询接口的参数与SQL语法的对照关系：
 
-| TcVector查询参数接口                                 | SQL语法         |
-|------------------------------------------------|---------------|
-| withParams                                     | withParams()  |
-| withVectors                                    | withVectors() |
+| TcVector查询参数接口                                 | SQL语法        |
+|------------------------------------------------|--------------|
+| withParams                                     | where expr   |
+| withVectors                                    | where expr  |
+| withDocumentIds                                    | where expr  |
+| withFilter                                    | where expr  |
+| collection(table)                      | from table   |
+| withOutputFields(outFields)                       | select outFields |
+| withExpr(expr)                                 | where expr   |
+| withLimit()                       | limit offset, k |
 
 ​	模块的maven坐标
 
