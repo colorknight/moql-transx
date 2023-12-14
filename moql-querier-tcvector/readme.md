@@ -23,8 +23,8 @@ RecordSet recordSet = querier.query(sql);
 
 | TcVector查询参数接口                                 | SQL语法        |
 |------------------------------------------------|--------------|
-| withParams                                     | where expr   |
-| withVectors                                    | where expr  |
+| withParams                                     | withParams   |
+| withVectors                                    | withVectors  |
 | withDocumentIds                                    | where expr  |
 | withFilter                                    | where expr  |
 | collection(table)                      | from table   |
