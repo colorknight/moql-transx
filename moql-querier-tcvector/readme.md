@@ -17,7 +17,7 @@ RecordSet recordSet = querier.query(sql);
 ```
 
 
-​	TcVector提供的检索接口与SQL语法有一定差异，其SearchParam提供的部分参数可以直接映射为SQL语法的等同语义子句。如：expr参数，其语义与SQL中Where子句语义基本兼容；其OutFields参数为输出结果集的列结构，与SQL语句的Select子句语义相同。但其也有其特殊的查询参数接口，如：针对向量字段匹配的参数接口withVectors、withVectorFieldName；表示匹配一致性级别的withConsistencyLevel接口等。由于这些概念在SQL中没有对应语义的子句，为不增加语法概念，MOQL Transx将这类接口都以Where子句中的函数形式进行表达。这种表达方式可能不是最佳表达方式，如果有人有更好的建议，可以到项目中给我们留言。
+​	TcVector提供的检索接口与SQL语法有一定差异，其SearchParam提供的部分参数可以直接映射为SQL语法的等同语义子句。如：expr参数，其语义与SQL中Where子句语义基本兼容；其OutFields参数为输出结果集的列结构，与SQL语句的Select子句语义相同。但其也有其特殊的查询参数接口，如：针对向量字段匹配的参数接口withVectors等。由于这些概念在SQL中没有对应语义的子句，为不增加语法概念，MOQL Transx将这类接口都以Where子句中的函数形式进行表达。这种表达方式可能不是最佳表达方式，如果有人有更好的建议，可以到项目中给我们留言。
 
 ​	下表将给出TcVector查询接口的参数与SQL语法的对照关系：
 
