@@ -95,18 +95,19 @@ String sql = "select ip.src, max(ip.sport), min(ip.sport) from ip3 ip group by i
 
 ​	MOQL用扩展函数的方式来支持ElasticSearch DSL语法中SQL无法描述的部分，如下：
 
-| ElasticSearch DSL   | MOQL                                     |
-| ------------------- | ---------------------------------------- |
-| match               | match(fields,queryString)  fields：字符串数组，表示多个字段时，字段间用“,”隔开。如：‘field1,field2’。当只有一个field值时，该函数被映射为match子句，当fields字段有多个值时，该函数被映射为malti_match子句  queryString：字符串，表示检索条件，等同与match与multi_match中的query属性 |
-| multi_match         | 见match                                   |
-| match_phrase        | matchPhrase(field,  queryString)或matchPhrase(field, queryString, analyzer)  field：字符串，match_phrase子句的名字  queryString：字符串，表示match_phrase子句的query属性  analyzer：字符串，与match_phrase的同名属性一致 |
-| match_phrase_prefix | matchPhrasePrefix(field,  queryString)或matchPhrasePrefix(field, queryString, analyzer)  field：字符串，match_phrase_prefix子句的名字  queryString：字符串，表示match_phrase_prefix子句的query属性  analyzer：字符串，与match_phrase的同名属性一致 |
-| terms_set           | termsSet(field,  valueSet, minMatchField)  field：字符串，terms_set子句的名字  valueSet：字符串数组，表示terms数组，当需要输入多个值时，值与值之间用”,”隔开。  minMatchField：字符串，表示minimum_should_match_field属性 |
-| regex               | regex(field,pattern)  field：字符串，字段名  pattern：字符串，表示正则表达式的模式。 |
-| fuzzy               | fuzzy(field,  value)  或fuzzy(field,value,fuzziness,prefix_length,max_expansions)  field：字符串，字段名  value：字符串，字段值  fuzziness：整数，与fuzzy子句同名属性一致  prefix_length：整数，与fuzzy子句同名属性一致  prefix_length：整数，与fuzzy子句同名属性一致 |
-| type                | type(value)  value：字符串，字段值               |
-| ids                 | ids(type,  values)  type：字符串，与ids子句同名属性一致。  values：字符串数组，多个值之间用”,”隔开。与ids子句同名属性一致。 |
+| ElasticSearch DSL   | MOQL                                                                                                                                                                                                                                                             |
+|---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| match               | match(fields,queryString)  fields：字符串数组，表示多个字段时，字段间用“,”隔开。如：‘field1,field2’。当只有一个field值时，该函数被映射为match子句，当fields字段有多个值时，该函数被映射为malti_match子句  queryString：字符串，表示检索条件，等同与match与multi_match中的query属性                                                                |
+| multi_match         | 见match                                                                                                                                                                                                                                                           |
+| match_phrase        | matchPhrase(field,  queryString)或matchPhrase(field, queryString, analyzer)  field：字符串，match_phrase子句的名字  queryString：字符串，表示match_phrase子句的query属性  analyzer：字符串，与match_phrase的同名属性一致                                                                             |
+| match_phrase_prefix | matchPhrasePrefix(field,  queryString)或matchPhrasePrefix(field, queryString, analyzer)  field：字符串，match_phrase_prefix子句的名字  queryString：字符串，表示match_phrase_prefix子句的query属性  analyzer：字符串，与match_phrase的同名属性一致                                                   |
+| terms_set           | termsSet(field,  valueSet, minMatchField)  field：字符串，terms_set子句的名字  valueSet：字符串数组，表示terms数组，当需要输入多个值时，值与值之间用”,”隔开。  minMatchField：字符串，表示minimum_should_match_field属性                                                                                           |
+| regex               | regex(field,pattern)  field：字符串，字段名  pattern：字符串，表示正则表达式的模式。                                                                                                                                                                                                     |
+| fuzzy               | fuzzy(field,  value)  或fuzzy(field,value,fuzziness,prefix_length,max_expansions)  field：字符串，字段名  value：字符串，字段值  fuzziness：整数，与fuzzy子句同名属性一致  prefix_length：整数，与fuzzy子句同名属性一致  prefix_length：整数，与fuzzy子句同名属性一致                                                    |
+| type                | type(value)  value：字符串，字段值                                                                                                                                                                                                                                       |
+| ids                 | ids(type,  values)  type：字符串，与ids子句同名属性一致。  values：字符串数组，多个值之间用”,”隔开。与ids子句同名属性一致。                                                                                                                                                                               |
 | more_like_this      | moreLike(fields,likeText,minTermFreq,maxQueryTerms)  fields：字符串数组，表示多个字段时，字段间用“,”隔开。表示more_like_this的fields属性  likeText：字符串，表示表示more_like_this的like_text属性  minTermFreq：整数，表示more_like_this的min_term_freq属性  maxQueryTerms：整数，表示more_like_this的max_query_terms属性 |
+| knn                 | knn(field, query_vector,k,num_candidates) field: 要搜索的向量字段的名称。query_vector：查询向量。必须与要搜索的向量场具有相同的维数。k：作为优先命中返回的最近邻居数。值必须小于 num_candidates。num_candidates：每个分片要考虑的最近邻候选数。不能超过 10,000。                                                                                                           |
 
 ## SQL to ElasticSearch DSL改进
 

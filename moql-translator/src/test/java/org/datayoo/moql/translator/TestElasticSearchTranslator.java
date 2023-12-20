@@ -15,6 +15,12 @@ public class TestElasticSearchTranslator extends TestCase {
     testESDialect(sql);
   }
 
+  public void testKNN() {
+    String sql = "select t.id from web t where t.name = 'name01' and knn(t.image_vector, '[0.3, 0.1, 1.2]', 10 ,100) and t.id = '1'";
+    testESDialect(sql);
+  }
+
+
   public void testConditionQuery() {
     String sql = "select w.* from web w where w.port=443";
     testESDialect(sql);

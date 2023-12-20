@@ -10,6 +10,7 @@ import org.datayoo.moql.metadata.*;
 import org.datayoo.moql.operand.constant.StringConstant;
 import org.datayoo.moql.operand.expression.AbstractOperationExpression;
 import org.datayoo.moql.operand.expression.ExpressionType;
+import org.datayoo.moql.operand.expression.OperatorGetter;
 import org.datayoo.moql.operand.expression.ParenExpression;
 import org.datayoo.moql.operand.expression.logic.LogicOperator;
 import org.datayoo.moql.operand.expression.logic.NotExpression;
@@ -46,6 +47,7 @@ public class ElasticSearchTranslator implements SqlTranslator {
     functionTranslators.put(IdsTranslator.FUNCTION_NAME, new IdsTranslator());
     functionTranslators.put(MoreLikeTranslator.FUNCTION_NAME,
         new MoreLikeTranslator());
+    functionTranslators.put(KNNTranslator.FUNCTION_NAME, new KNNTranslator());
   }
 
   protected static Gson gson = new GsonBuilder().serializeNulls()
@@ -418,8 +420,8 @@ public class ElasticSearchTranslator implements SqlTranslator {
   protected void translate2CommonQuery(SelectorImpl selector,
       JsonObject jsonObject, Map<String, Object> translationContext) {
     JsonObject queryObject = new JsonObject();
+    translateKnn(selector.getWhere().getOperand(), jsonObject);
     jsonObject.add("query", queryObject);
-
     if (selector.getHaving() != null) {
       JsonElement jsonElement;
       if (selector.getWhere() != null) {
@@ -465,6 +467,22 @@ public class ElasticSearchTranslator implements SqlTranslator {
     }
     translateOperand(operand, jsonElement, false, translationContext);
     return jsonElement;
+  }
+
+  protected void translateKnn(Operand operand, JsonElement jsonElement) {
+    if (operand instanceof AbstractOperationExpression) {
+      AbstractOperationExpression expression = (AbstractOperationExpression) operand;
+      if (expression.getExpressionType() == ExpressionType.LOGIC) {
+        translateKnn(expression.getLeftOperand(), jsonElement);
+        translateKnn(expression.getRightOperand(), jsonElement);
+      } else if (expression.getExpressionType() == ExpressionType.RELATION) {
+        if (expression.getOperator() == RelationOperator.EXPR) {
+          translateFunction((AbstractFunction) expression.getRightOperand(),
+              jsonElement, null);
+          // 删除knn
+        }
+      }
+    }
   }
 
   protected JsonElement shellLogicExpression(Operand operand,
@@ -520,7 +538,10 @@ public class ElasticSearchTranslator implements SqlTranslator {
           translationContext);
     } else if (operand instanceof AbstractFunction) {
       AbstractFunction function = (AbstractFunction) operand;
-      translateFunction(function, jsonElement, translationContext);
+      if (!KNNTranslator.FUNCTION_NAME.equals(function.getName())) {
+        translateFunction(function, jsonElement, translationContext);
+      }
+
     } else {
       throw new MoqlTranslationException(
           StringFormater.format("The operand '{}' does not support!",
@@ -619,6 +640,7 @@ public class ElasticSearchTranslator implements SqlTranslator {
           translationContext);
     }
   }
+
 
   protected void translateParenExpression(ParenExpression expression,
       JsonElement jsonElement, boolean having,
