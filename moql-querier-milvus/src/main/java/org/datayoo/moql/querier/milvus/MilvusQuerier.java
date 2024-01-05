@@ -199,33 +199,38 @@ public class MilvusQuerier implements DataQuerier {
   protected List<ColumnMetadata> getCollectionFields(
       List<FieldSchema> fieldSchemas) {
     List<ColumnMetadata> columnMetadatas = new LinkedList<>();
-    for (FieldSchema fieldSchema : fieldSchemas) {
-      ColumnMetadata columnMetadata = new ColumnMetadata(fieldSchema.getName(),
-          fieldSchema.getName());
-      columnMetadata.setDataType(fieldSchema.getDataType());
-      columnMetadatas.add(columnMetadata);
+    if (fieldSchemas != null) {
+      for (FieldSchema fieldSchema : fieldSchemas) {
+        ColumnMetadata columnMetadata = new ColumnMetadata(fieldSchema.getName(),
+                fieldSchema.getName());
+        columnMetadata.setDataType(fieldSchema.getDataType());
+        columnMetadatas.add(columnMetadata);
+      }
     }
+
     return columnMetadatas;
   }
 
   protected ConditionMetadata buildDefaultConditionMetadata(
       List<FieldSchema> fieldSchemas) {
-    for (FieldSchema fieldSchema : fieldSchemas) {
-      DataType dataType = fieldSchema.getDataType();
-      if (dataType == DataType.Float || dataType == DataType.Double
-          || dataType == DataType.Int8 || dataType == DataType.Int16
-          || dataType == DataType.Int32 || dataType == DataType.Int64) {
-        OperationMetadata operationMetadata = new RelationOperationMetadata(">",
-            fieldSchema.getName(), "0");
-        return new ConditionMetadata(operationMetadata);
-      } else if (dataType == DataType.Bool) {
-        OperationMetadata operationMetadata = new RelationOperationMetadata(
-            "==", fieldSchema.getName(), "true");
-        return new ConditionMetadata(operationMetadata);
-      } else if (dataType == DataType.String) {
-        OperationMetadata operationMetadata = new RelationOperationMetadata(
-            "!=", fieldSchema.getName(), " ");
-        return new ConditionMetadata(operationMetadata);
+    if (fieldSchemas != null) {
+      for (FieldSchema fieldSchema : fieldSchemas) {
+        DataType dataType = fieldSchema.getDataType();
+        if (dataType == DataType.Float || dataType == DataType.Double
+                || dataType == DataType.Int8 || dataType == DataType.Int16
+                || dataType == DataType.Int32 || dataType == DataType.Int64) {
+          OperationMetadata operationMetadata = new RelationOperationMetadata(">",
+                  fieldSchema.getName(), "0");
+          return new ConditionMetadata(operationMetadata);
+        } else if (dataType == DataType.Bool) {
+          OperationMetadata operationMetadata = new RelationOperationMetadata(
+                  "==", fieldSchema.getName(), "true");
+          return new ConditionMetadata(operationMetadata);
+        } else if (dataType == DataType.String) {
+          OperationMetadata operationMetadata = new RelationOperationMetadata(
+                  "!=", fieldSchema.getName(), " ");
+          return new ConditionMetadata(operationMetadata);
+        }
       }
     }
     return null;
@@ -255,9 +260,16 @@ public class MilvusQuerier implements DataQuerier {
 
   protected RecordSet toSearchRecordSet(SelectorMetadata selectorMetadata,
       R<SearchResults> result) {
-    if (result.getData() == null)
+    if (result == null) {
+      return null;
+    }
+
+    if (result.getException() != null) { // 没对应数据时，查不到很正常，不应该抛异常  result.getData() == null) {
       throw new MoqlRuntimeException(result.getException());
-    SearchResultData searchResultData = result.getData().getResults();
+    }
+
+    SearchResults data = result.getData();
+    SearchResultData searchResultData = data == null ? null : data.getResults();
     List<ColumnMetadata> columnMetadatas = selectorMetadata.getColumns()
         .getColumns();
     //    setOutputDataType(columnMetadatas, searchResultData.getFieldsDataList());
@@ -290,14 +302,21 @@ public class MilvusQuerier implements DataQuerier {
 
   protected RecordSet toQueryRecordSet(SelectorMetadata selectorMetadata,
       R<QueryResults> result) {
-    if (result.getData() == null)
+    if (result == null) {
+      return null;
+    }
+
+    if (result.getException() != null) { // 没对应数据时，查不到很正常，不应该抛异常  result.getData() == null) {
       throw new MoqlRuntimeException(result.getException());
+    }
+
     QueryResults queryResults = result.getData();
     List<ColumnMetadata> columnMetadatas = selectorMetadata.getColumns()
         .getColumns();
     //    setOutputDataType(columnMetadatas, queryResults.getFieldsDataList());
-    int[] posMappings = posMappings(columnMetadatas,
-        result.getData().getFieldsDataList());
+
+    QueryResults data = result.getData();
+    int[] posMappings = posMappings(columnMetadatas, data == null ? null : data.getFieldsDataList());
     RecordSetMetadata recordSetMetadata = new RecordSetMetadata(
         (List) columnMetadatas, null);
     return new RecordSetImpl(recordSetMetadata, new Date(), new Date(),
@@ -306,27 +325,39 @@ public class MilvusQuerier implements DataQuerier {
 
   protected int[] posMappings(List<ColumnMetadata> columnMetadatas,
       List<FieldData> fieldDatas) {
-    int[] posMappings = new int[columnMetadatas.size()];
+    int mdSize = columnMetadatas == null ? 0 : columnMetadatas.size();
+    int[] posMappings = new int[mdSize];
     int i = 0;
-    for (FieldData fieldData : fieldDatas) {
-      posMappings[i++] = findPos(columnMetadatas, fieldData.getFieldName());
+    if (mdSize > 0) {
+      for (FieldData fieldData : fieldDatas) {
+        posMappings[i++] = findPos(columnMetadatas, fieldData.getFieldName());
+      }
     }
     return posMappings;
   }
 
   protected int findPos(List<ColumnMetadata> columnMetadatas, String name) {
-    int i = 0;
-    for (ColumnMetadata columnMetadata : columnMetadatas) {
-      if (columnMetadata.getName().equals(name))
-        return i;
-      i++;
+    if (columnMetadatas != null) {
+      int i = 0;
+      for (ColumnMetadata columnMetadata : columnMetadatas) {
+        if (Objects.equals(columnMetadata.getName(), name)) {
+          return i;
+        }
+
+        i++;
+      }
     }
+
     throw new IllegalArgumentException(
         String.format("There is no column named '%s'!", name));
   }
 
   protected List getOutputColumns(List<ColumnMetadata> columnMetadatas,
       DataType idType) {
+    if (columnMetadatas == null) {
+      columnMetadatas = new ArrayList<>();
+    }
+
     ColumnMetadata columnMetadata = new ColumnMetadata("id", "id");
     columnMetadatas.add(0, columnMetadata);
     columnMetadata.setDataType(idType);
@@ -338,22 +369,36 @@ public class MilvusQuerier implements DataQuerier {
 
   protected List<Object[]> toRecords(SearchResultData resultData,
       int[] posMappings) {
+    if (resultData == null) {
+      return null;
+    }
+
     List<Object[]> records = new LinkedList<>();
     int fieldCount = resultData.getFieldsDataCount() + 2;
     Iterator idIt = getIdIterator(resultData.getIds());
-    Iterator idScoreIt = resultData.getScoresList().iterator();
+
+    List<Float> list = resultData.getScoresList();
+    Iterator idScoreIt = list == null ? null : list.iterator();
     List<Iterator> fieldIterators = getFieldIterators(
         resultData.getFieldsDataList());
-    while (idIt.hasNext()) {
-      Object[] record = new Object[fieldCount];
-      record[0] = idIt.next();
-      record[1] = idScoreIt.next();
-      int i = 0;
-      for (Iterator it : fieldIterators) {
-        record[posMappings[i++] + 2] = it.next();
+
+    if (idIt != null) {
+      while (idIt.hasNext()) {
+        Object[] record = new Object[fieldCount];
+        record[0] = idIt.next();
+        record[1] = idScoreIt.next();
+        int i = 0;
+
+        if (fieldIterators != null) {
+          for (Iterator it : fieldIterators) {
+            record[posMappings[i++] + 2] = it.next();
+          }
+        }
+
+        records.add(record);
       }
-      records.add(record);
     }
+
     return records;
   }
 
@@ -362,6 +407,10 @@ public class MilvusQuerier implements DataQuerier {
     List<Object[]> records = new LinkedList<>();
     List<Iterator> fieldIterators = getFieldIterators(
         queryResults.getFieldsDataList());
+    if (fieldIterators == null) {
+      return records;
+    }
+
     while (true) {
       Object[] record = new Object[fieldIterators.size()];
       int i = 0;
@@ -382,6 +431,10 @@ public class MilvusQuerier implements DataQuerier {
   }
 
   protected Iterator getIdIterator(IDs ids) {
+    if (ids == null) {
+      return null;
+    }
+
     if (ids.hasIntId()) {
       LongArray longArray = ids.getIntId();
       return longArray.getDataList().iterator();
@@ -393,9 +446,11 @@ public class MilvusQuerier implements DataQuerier {
 
   protected List<Iterator> getFieldIterators(List<FieldData> fieldDatas) {
     List<Iterator> fieldIterators = new LinkedList<>();
-    for (FieldData fieldData : fieldDatas) {
-      FieldDataWrapper dataWrapper = new FieldDataWrapper(fieldData);
-      fieldIterators.add(dataWrapper.getFieldData().iterator());
+    if (fieldDatas != null) {
+      for (FieldData fieldData : fieldDatas) {
+        FieldDataWrapper dataWrapper = new FieldDataWrapper(fieldData);
+        fieldIterators.add(dataWrapper.getFieldData().iterator());
+      }
     }
     return fieldIterators;
   }
@@ -426,7 +481,7 @@ public class MilvusQuerier implements DataQuerier {
     if (selectorImpl.getLimit() != null) {
       buildLimitClause(builder, selectorImpl.getLimit());
     }
-    if (paramMap.size() > 0) {
+    if (paramMap.size() > 0) { // FIXME 这里永远走不进分支，paramMap 仅初始化未添加子项
       Gson gson = new GsonBuilder().create();
       builder.withParams(gson.toJson(paramMap));
     }
@@ -445,23 +500,29 @@ public class MilvusQuerier implements DataQuerier {
   protected void buildSelectClause(BuilderProxy builder,
       RecordSetOperator recordSetOperator) {
     List<String> outputFields = new LinkedList<>();
-    for (Column column : recordSetOperator.getColumns().getColumns()) {
-      ColumnMetadata columnMetadata = column.getColumnMetadata();
-      if (columnMetadata.getNestedSelector() != null) {
-        throw new UnsupportedOperationException(
-            "Unsupport nested select clause!");
-      } else if (columnMetadata.getCaseMetadata() != null) {
-        throw new UnsupportedOperationException("Unsupport case clause!");
+
+    Columns columns = recordSetOperator == null ? null : recordSetOperator.getColumns();
+    List<Column> cols = columns == null ? null : columns.getColumns();
+    if (cols != null) {
+      for (Column column : cols) {
+        ColumnMetadata columnMetadata = column.getColumnMetadata();
+        if (columnMetadata.getNestedSelector() != null) {
+          throw new UnsupportedOperationException(
+                  "Unsupport nested select clause!");
+        } else if (columnMetadata.getCaseMetadata() != null) {
+          throw new UnsupportedOperationException("Unsupport case clause!");
+        }
+        outputFields.add(columnMetadata.getValue());
       }
-      outputFields.add(columnMetadata.getValue());
     }
+
     builder.withOutFields(outputFields);
   }
 
   protected void buildWhereClause(BuilderProxy builder, Condition condition)
       throws MoqlException {
     StringBuilder stringBuilder = new StringBuilder();
-    buildOperand(builder, condition.getOperand(), stringBuilder);
+    buildOperand(builder, condition == null ? null : condition.getOperand(), stringBuilder);
     if (stringBuilder.length() > 0) {
       builder.withExpr(stringBuilder.toString());
     }
@@ -506,51 +567,60 @@ public class MilvusQuerier implements DataQuerier {
       stringBuilder.append(temp);
     } else if (operand instanceof Function) {
       buildFunction(builder, (Function) operand, stringBuilder);
-    } else {
-      stringBuilder.append(operand.toString());
+    } else if (operand != null) {
+      stringBuilder.append(operand);
     }
   }
 
   protected void buildFunction(BuilderProxy builder, Function function,
       StringBuilder stringBuilder) {
-    if (function.getName().equals(RESERVED_FUNC_PARTITIONBY)) {
+    String name = function == null ? null : function.getName();
+    if (name == null) {
+      return;
+    }
+
+    if (name.equals(RESERVED_FUNC_PARTITIONBY)) { // TODO 用 function instanceof PartitionBy 替代，避免可能的 ClassCastException
       PartitionBy partitionBy = (PartitionBy) function;
       builder.withPartitionNames(partitionBy.getPartitions());
-    } else if (function.getName().equals(RESERVED_FUNC_VMATCH)) {
+    } else if (name.equals(RESERVED_FUNC_VMATCH)) {
       VMatch vMatch = (VMatch) function;
       builder.withVectorFieldName(vMatch.getVectorName());
       builder.withVectors(vMatch.getVectorArray());
       builder.withMetricType(vMatch.getMetricType());
-    } else if (function.getName().equals(RESERVED_FUNC_CONSISTENCYLEVEL)) {
+    } else if (name.equals(RESERVED_FUNC_CONSISTENCYLEVEL)) {
       ConsistencyLevel consistencyLevel = (ConsistencyLevel) function;
       builder.withConsistencyLevel(consistencyLevel.getConsistencyLevel());
-    } else if (function.getName().equals(RESERVED_FUNC_GRACEFUL_TIME)) {
+    } else if (name.equals(RESERVED_FUNC_GRACEFUL_TIME)) {
       GracefulTime gracefulTime = (GracefulTime) function;
       builder.withGracefulTime(gracefulTime.getGracefulTime());
-    } else if (function.getName().equals(RESERVED_FUNC_GUARANTEE_TIMESTAMP)) {
+    } else if (name.equals(RESERVED_FUNC_GUARANTEE_TIMESTAMP)) {
       GuaranteeTimestamp guaranteeTimestamp = (GuaranteeTimestamp) function;
       builder.withGuaranteeTimestamp(
           guaranteeTimestamp.getGuaranteeTimestamp());
-    } else if (function.getName().equals(RESERVED_FUNC_ROUND_DECIMAL)) {
+    } else if (name.equals(RESERVED_FUNC_ROUND_DECIMAL)) {
       RoundDecimal roundDecimal = (RoundDecimal) function;
       builder.withRoundDecimal(roundDecimal.getRoundDecimal());
-    } else if (function.getName().equals(RESERVED_FUNC_TRAVEL_TIMESTAMP)) {
+    } else if (name.equals(RESERVED_FUNC_TRAVEL_TIMESTAMP)) {
       TravelTimestamp travelTimestamp = (TravelTimestamp) function;
       builder.withTravelTimestamp(travelTimestamp.getTravelTimestamp());
-    } else if (function.getName().equals(RESERVED_FUNC_NPROBE)) {
+    } else if (name.equals(RESERVED_FUNC_NPROBE)) {
       NProbe nProbe = (NProbe) function;
       builder.withNProbe(nProbe.getnProbe());
-    } else if (function.getName().equals(RESERVED_FUNC_EF)) {
+    } else if (name.equals(RESERVED_FUNC_EF)) {
       Ef ef = (Ef) function;
       builder.withEf(ef.getEf());
-    } else if (function.getName().equals(RESERVED_FUNC_SEARCHK)) {
+    } else if (name.equals(RESERVED_FUNC_SEARCHK)) {
       SearchK searchK = (SearchK) function;
       builder.withSearchK(searchK.getSearchK());
     }
   }
 
   protected void buildLimitClause(BuilderProxy builder, Limit limit) {
-    LimitMetadata limitMetadata = limit.getLimitMetadata();
+    LimitMetadata limitMetadata = limit == null ? null : limit.getLimitMetadata();
+    if (limitMetadata == null) {
+      return;
+    }
+
     builder.withTopK(limitMetadata.getValue());
     if (limitMetadata.getOffset() != 0)
       builder.withOffset(limitMetadata.getOffset());
