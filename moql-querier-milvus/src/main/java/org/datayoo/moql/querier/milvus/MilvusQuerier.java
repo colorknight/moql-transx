@@ -2,6 +2,7 @@ package org.datayoo.moql.querier.milvus;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
 import io.milvus.client.MilvusClient;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.grpc.*;
@@ -144,11 +145,23 @@ public class MilvusQuerier implements DataQuerier {
       if (builderProxy.isSearchMode()) {
         SearchParam searchParam = (SearchParam) builderProxy.build();
         R<SearchResults> result = milvusClient.search(searchParam);
-        return toSearchRecordSet((SelectorMetadata) selectorDefinition, result);
+        if (result.getStatus() == ErrorCode.Success_VALUE)
+          return toSearchRecordSet((SelectorMetadata) selectorDefinition,
+              result);
+        else {
+          throw new IOException(
+              String.format("Search failed! Reason: %s !", result.toString()));
+        }
       } else {
         QueryParam queryParam = (QueryParam) builderProxy.build();
         R<QueryResults> result = milvusClient.query(queryParam);
-        return toQueryRecordSet((SelectorMetadata) selectorDefinition, result);
+        if (result.getStatus() == ErrorCode.Success_VALUE)
+          return toQueryRecordSet((SelectorMetadata) selectorDefinition,
+              result);
+        else {
+          throw new IOException(
+              String.format("Query failed! Reason: %s !", result.toString()));
+        }
       }
     } catch (MoqlException e) {
       throw new IOException("Parse failed!", e);
@@ -425,8 +438,11 @@ public class MilvusQuerier implements DataQuerier {
     }
     if (selectorImpl.getLimit() != null) {
       buildLimitClause(builder, selectorImpl.getLimit());
+    } else {
+      builder.withTopK(10);
+      builder.withOffset(0);
     }
-    if (paramMap.size() > 0) {
+    if (paramMap.size() > 0) { // 暂时无用
       Gson gson = new GsonBuilder().create();
       builder.withParams(gson.toJson(paramMap));
     }
