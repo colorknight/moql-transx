@@ -104,6 +104,7 @@ public class EsDataQuerier implements DataQuerier {
   public RecordSet query(String sql, Properties queryProps,
       SupplementReader supplementReader) throws IOException {
     Validate.notEmpty(sql, "sql is empty!");
+    sql = sql.replaceAll("`", StringUtils.EMPTY);
     if (queryProps == null) {
       queryProps = new Properties();
     }
@@ -116,9 +117,6 @@ public class EsDataQuerier implements DataQuerier {
           queryProps);
       String query = MoqlTranslator.translateMetadata2Sql(selectorDefinition,
           SqlDialectType.ELASTICSEARCH);
-      //      String queryUrl = makeQueryUrl(indexAndTables, queryProps);
-      //      HttpResponse response = query(queryUrl, query);
-      //      String data = EntityUtils.toString(response.getEntity());
       String queryUrl = makeQueryUrl(indexAndTables, queryProps);
       Response response = query(queryUrl, query);
       String data = EntityUtils.toString(response.getEntity());

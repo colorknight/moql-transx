@@ -12,6 +12,7 @@ import io.milvus.param.collection.DescribeCollectionParam;
 import io.milvus.param.dml.QueryParam;
 import io.milvus.param.dml.SearchParam;
 import io.milvus.response.FieldDataWrapper;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.datayoo.moql.*;
 import org.datayoo.moql.core.*;
@@ -138,6 +139,7 @@ public class MilvusQuerier implements DataQuerier {
   public RecordSet query(String sql, Properties queryProps,
       SupplementReader supplementReader) throws IOException {
     Validate.notEmpty(sql, "sql is empty!");
+    sql = sql.replaceAll("`", StringUtils.EMPTY);
     try {
       SelectorDefinition selectorDefinition = parseMoql(sql);
       decorateSelectorDefinition(selectorDefinition);

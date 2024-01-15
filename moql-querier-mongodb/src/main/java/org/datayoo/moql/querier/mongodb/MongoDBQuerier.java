@@ -2,6 +2,7 @@ package org.datayoo.moql.querier.mongodb;
 
 import com.google.gson.*;
 import com.mongodb.client.*;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.bson.BsonDocument;
 import org.bson.Document;
@@ -102,6 +103,7 @@ public class MongoDBQuerier implements DataQuerier {
   public RecordSet query(String sql, Properties queryProps,
       SupplementReader supplementReader) throws IOException {
     Validate.notEmpty(sql, "sql is empty!");
+    sql = sql.replaceAll("`", StringUtils.EMPTY);
     if (queryProps == null) {
       queryProps = new Properties();
     }
