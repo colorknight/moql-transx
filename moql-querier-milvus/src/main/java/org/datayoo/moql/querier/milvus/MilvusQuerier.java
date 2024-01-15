@@ -2,7 +2,6 @@ package org.datayoo.moql.querier.milvus;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
 import io.milvus.client.MilvusClient;
 import io.milvus.client.MilvusServiceClient;
 import io.milvus.grpc.*;
@@ -32,7 +31,6 @@ import org.datayoo.moql.operand.function.Function;
 import org.datayoo.moql.querier.DataQuerier;
 import org.datayoo.moql.querier.SupplementReader;
 
-import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.util.*;
 
