@@ -105,6 +105,7 @@ public class TcVectorQuerier implements DataQuerier {
   public RecordSet query(String sql, Properties properties,
       SupplementReader supplementReader) throws IOException {
     Validate.notEmpty(sql, "sql is empty!");
+    sql = sql.replaceAll("`", StringUtils.EMPTY);
     try {
       if (vectorDBClient == null) {
         throw new MoqlException("TcVectorQuerier is null or has benn close");
