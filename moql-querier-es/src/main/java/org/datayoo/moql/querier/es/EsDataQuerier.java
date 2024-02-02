@@ -351,6 +351,9 @@ public class EsDataQuerier implements DataQuerier {
         value = getAggregationFunctionExpression(columnMetadata);
       }
       try {
+        if (value.contains("-")) {
+          value = "`" + value + "`";
+        }
         operands[i++] = operandFactory.createOperand(value);
       } catch (MoqlException e) {
         throw new IllegalArgumentException(
