@@ -278,7 +278,7 @@ public class EsDataQuerier implements DataQuerier {
     //    }
 
     HttpEntity entity = new NStringEntity(query, ContentType.APPLICATION_JSON);
-    Request request = new Request("GET", queryUrl);
+    Request request = new Request("POST", queryUrl);
     request.setEntity(entity);
 
     Response response = httpClient.performRequest(request);

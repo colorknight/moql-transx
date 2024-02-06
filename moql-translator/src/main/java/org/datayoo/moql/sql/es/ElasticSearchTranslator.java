@@ -420,8 +420,10 @@ public class ElasticSearchTranslator implements SqlTranslator {
   protected void translate2CommonQuery(SelectorImpl selector,
       JsonObject jsonObject, Map<String, Object> translationContext) {
     JsonObject queryObject = new JsonObject();
-    translateKnn(selector.getWhere().getOperand(), jsonObject);
-    jsonObject.add("query", queryObject);
+    if (selector.getWhere() != null) {
+      translateKnn(selector.getWhere().getOperand(), jsonObject);
+    }
+
     if (selector.getHaving() != null) {
       JsonElement jsonElement;
       if (selector.getWhere() != null) {
@@ -437,6 +439,10 @@ public class ElasticSearchTranslator implements SqlTranslator {
       translateWhereClause(selector.getWhere(), queryObject, false,
           translationContext);
     }
+    if (queryObject.size() > 0) {
+      jsonObject.add("query", queryObject);
+    }
+
   }
 
   protected boolean isLogicExpression(Operand operand) {

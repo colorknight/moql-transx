@@ -5,7 +5,7 @@ import java.io.IOException;
 
 public class EsDataQuerierTest{
   public static void main(String[] args) throws IOException {
-    String sql = "select t.id from web t where t.name = 'name' knn(t.image_vector, '[0.3, 0.1, 1.2]', 10 ,100) and t.id = '1'";
+    String sql = "select t.id from web t where knn(t.image_vector, '[0.3, 0.1, 1.2]', 10 ,100)";
     EsDataQuerier esDataQuerier = new EsDataQuerier();
     RecordSet recordSet = esDataQuerier.query(sql);
 
