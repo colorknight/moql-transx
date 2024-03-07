@@ -19,13 +19,12 @@ package org.datayoo.moql.sql;
 
 import org.datayoo.moql.core.*;
 import org.datayoo.moql.core.group.GroupRecordSetOperator;
+import org.datayoo.moql.metadata.LimitMetadata;
 
 import java.util.Map;
 
 /**
- *
  * @author Tang Tadin
- *
  */
 public class OracleTranslator extends MoqlGrammarTranslator {
 
@@ -41,11 +40,13 @@ public class OracleTranslator extends MoqlGrammarTranslator {
     StringBuffer sbuf = new StringBuffer();
     sbuf.append(translate2SelectClause(selector.getRecordSetOperator(),
         translationContext));
+    if (selector.getLimit() != null) {
+      sbuf.append(",rownum rn ");
+    }
     sbuf.append(translate2FromClause(selector.getTables(), translationContext));
     if (selector.getWhere() != null || selector.getLimit() != null) {
       sbuf.append(
-          translate2WhereClause(selector.getWhere(), selector.getLimit(),
-              translationContext));
+          translate2WhereClause(selector.getWhere(), translationContext));
     }
     if (selector.getRecordSetOperator() instanceof GroupRecordSetOperator) {
       sbuf.append(translate2GroupbyClause(
@@ -60,26 +61,20 @@ public class OracleTranslator extends MoqlGrammarTranslator {
       sbuf.append(translate2OrderbyClause((OrderImpl) selector.getOrder(),
           translationContext));
     }
+    if (selector.getLimit() != null)
+      return translate2Limit(sbuf.toString(), selector.getLimit());
     return sbuf.toString();
   }
 
-  protected String translate2WhereClause(Condition condition, Limit top,
-      Map<String, Object> translationContext) {
+  protected String translate2Limit(String innerSql, Limit limit) {
+    LimitMetadata limitMetadata = limit.getLimitMetadata();
     StringBuffer sbuf = new StringBuffer();
-    sbuf.append("where ");
-    if (top != null)
-      sbuf.append(translateWhereLimit(top));
-    if (condition != null)
-      sbuf.append(translateOperand(condition.getOperand(), translationContext));
-    return sbuf.toString();
-  }
-
-  protected String translateWhereLimit(Limit limit) {
-    // TODO Auto-generated method stub
-    StringBuffer sbuf = new StringBuffer();
-    sbuf.append("rownum <= ");
-    sbuf.append(limit.getLimitMetadata().getValue());
-    sbuf.append(" ");
+    sbuf.append("select * from (");
+    sbuf.append(innerSql);
+    sbuf.append(") where rn between ");
+    sbuf.append(limitMetadata.getOffset());
+    sbuf.append(" and ");
+    sbuf.append(limitMetadata.getValue());
     return sbuf.toString();
   }
 
