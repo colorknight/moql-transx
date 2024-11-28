@@ -18,6 +18,7 @@
         <module>moql-querier-es</module>
         <module>moql-querier-mongodb</module>
         <module>moql-querier-tcvector</module>
+        <module>moql-querier-milvus2.4</module>
     </modules>
     <packaging>pom</packaging>
 
