@@ -467,8 +467,8 @@ public class MilvusQuerier implements DataQuerier {
       builder.withPartitionNames(partitionBy.getPartitions());
     } else if (function.getName().equals(RESERVED_FUNC_VMATCH)) {
       VMatch vMatch = (VMatch) function;
-      builder.withVectorFieldName(vMatch.getVectorName());
-      builder.withVectors(vMatch.getVectorArray());
+      builder.withVector(vMatch.getVectorName(), vMatch.getMetricType(),
+          vMatch.getVectorArray());
     } else if (function.getName().equals(RESERVED_FUNC_CONSISTENCYLEVEL)) {
       ConsistencyLevel consistencyLevel = (ConsistencyLevel) function;
       builder.withConsistencyLevel(consistencyLevel.getConsistencyLevel());

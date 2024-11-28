@@ -103,21 +103,15 @@ public class SearchBuilderProxy {
     return this;
   }
 
-  public SearchBuilderProxy withVectorFieldName(String vectorFieldName) {
+  public SearchBuilderProxy withVector(String vectorFieldName,
+      MetricType metricType, List<?> vectors) {
     if (hybird) {
       throw new IllegalStateException("Unsupport in hybird mode!");
     }
     search = true;
+    searchParamMap.put("metric_type", metricType.name());
     searchParamBuilder.annsField(vectorFieldName);
     annSearchParamBuilder.vectorFieldName(vectorFieldName);
-    return this;
-  }
-
-  public SearchBuilderProxy withVectors(List<?> vectors) {
-    if (hybird) {
-      throw new IllegalStateException("Unsupport in hybird mode!");
-    }
-    search = true;
     searchParamBuilder.data(vectors);
     annSearchParamBuilder.vectors(vectors);
     return this;

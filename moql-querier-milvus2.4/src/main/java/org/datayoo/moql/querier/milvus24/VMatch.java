@@ -36,12 +36,16 @@ public class VMatch extends AbstractFunction {
 
   protected String vectorName;
 
+  protected MetricType metricType;
+
   protected List<List> vectorArray = new LinkedList<>();
 
   public VMatch(List<Operand> parameters) {
     super(FUNCTION_NAME, 2, parameters);
     vectorName = getParameters().get(0).getName();
     String v = (String) getParameters().get(1).operate((EntityMap) null);
+    metricType = MetricType.valueOf(v.toUpperCase());
+    v = (String) getParameters().get(2).operate((EntityMap) null);
     Gson gson = new GsonBuilder().create();
     vectorArray = toFloat(gson.fromJson(v, List.class));
   }
@@ -75,6 +79,14 @@ public class VMatch extends AbstractFunction {
 
   public String getVectorName() {
     return vectorName;
+  }
+
+  public MetricType getMetricType() {
+    return metricType;
+  }
+
+  public void setMetricType(MetricType metricType) {
+    this.metricType = metricType;
   }
 
   public List<List> getVectorArray() {
