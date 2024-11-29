@@ -17,7 +17,7 @@ String sql = "select col1, col2 from book where col3 = 4 and vMatch(vec, 'L2', '
 RecordSet recordSet = milvusQuerier.query(sql);
 ```
 
-​	也可以使用MilvusQuerier将SQL语句翻译为SearchParam，然后调用MilvusServiceClient.search方法进获取查询结果，如列下代码所示：
+​	也可以使用MilvusQuerier将SQL语句翻译为SearchParam，然后调用MilvusServiceClient.search方法获取查询结果，如下列代码所示：
 
 ```
 MilvusQuerier milvusQuerier = new MilvusQuerier();
