@@ -229,7 +229,10 @@ public class SearchBuilderProxy {
     searchParamBuilder.topK(topK);
     queryParamBuilder.limit((long) topK);
     hybirdSearchParamBuilder.topK(topK);
-    annSearchParamBuilder.topK(topK);
+    if (annSearchParamBuilder != null) {
+      annSearchParamBuilder.topK(topK);
+    }
+
     return this;
   }
 
