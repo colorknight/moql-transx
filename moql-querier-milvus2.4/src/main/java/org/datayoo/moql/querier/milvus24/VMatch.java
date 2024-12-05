@@ -20,12 +20,14 @@ package org.datayoo.moql.querier.milvus24;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import io.milvus.param.MetricType;
+import io.milvus.v2.service.vector.request.data.BaseVector;
+import io.milvus.v2.service.vector.request.data.FloatVec;
+import io.milvus.v2.service.vector.request.data.SparseFloatVec;
 import org.datayoo.moql.EntityMap;
 import org.datayoo.moql.Operand;
 import org.datayoo.moql.operand.function.AbstractFunction;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author Tang Tadin
@@ -38,30 +40,48 @@ public class VMatch extends AbstractFunction {
 
   protected MetricType metricType;
 
-  protected List<List> vectorArray = new LinkedList<>();
+  protected List<BaseVector> vectors = new LinkedList<>();
 
   public VMatch(List<Operand> parameters) {
-    super(FUNCTION_NAME, 2, parameters);
+    super(FUNCTION_NAME, 3, parameters);
     vectorName = getParameters().get(0).getName();
     String v = (String) getParameters().get(1).operate((EntityMap) null);
     metricType = MetricType.valueOf(v.toUpperCase());
     v = (String) getParameters().get(2).operate((EntityMap) null);
     Gson gson = new GsonBuilder().create();
-    vectorArray = toFloat(gson.fromJson(v, List.class));
+    List list = gson.fromJson(v, List.class);
+    vectors = toVectors(list);
   }
 
-  protected List toFloat(List vectorArray) {
-    List nVectorArray = new LinkedList();
-    for (Object o : vectorArray) {
-      List l = (List) o;
-      List nl = new LinkedList();
-      for (Object o1 : l) {
-        Number n = (Number) o1;
-        nl.add(n.floatValue());
+  protected List<BaseVector> toVectors(List list) {
+    List vectors = new LinkedList();
+    for (Object o : list) {
+      if (o instanceof List) {
+        vectors.add(toVector((List) o));
+      } else if (o instanceof Map) {
+        vectors.add(toVector((Map) o));
       }
-      nVectorArray.add(nl);
     }
-    return nVectorArray;
+    return vectors;
+  }
+
+  protected FloatVec toVector(List list) {
+    List<Float> vectors = new LinkedList<>();
+    for (Object o1 : list) {
+      Number n = (Number) o1;
+      vectors.add(n.floatValue());
+    }
+    return new FloatVec(vectors);
+  }
+
+  protected SparseFloatVec toVector(Map map) {
+    SortedMap<Long, Float> vectorMap = new TreeMap<>();
+    for (Object obj : map.entrySet()) {
+      Map.Entry entry = (Map.Entry) obj;
+      vectorMap.put(Long.valueOf(entry.getKey().toString()),
+          Float.valueOf(entry.getValue().toString()));
+    }
+    return new SparseFloatVec(vectorMap);
   }
 
   /* (non-Javadoc)
@@ -89,8 +109,8 @@ public class VMatch extends AbstractFunction {
     this.metricType = metricType;
   }
 
-  public List<List> getVectorArray() {
-    return vectorArray;
+  public List<BaseVector> getVectors() {
+    return vectors;
   }
 
 }

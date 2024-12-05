@@ -182,7 +182,7 @@ public class MilvusQuerier implements DataQuerier {
       throw new UnsupportedOperationException(
           "Unsupport multi tables operation!");
     }
-    return ((TableMetadata) queryableMetadata).getName();
+    return ((TableMetadata) queryableMetadata).getValue();
   }
 
   protected void decorateSelectorDefinition(
@@ -358,7 +358,7 @@ public class MilvusQuerier implements DataQuerier {
       return;
     if (queryable instanceof CommonTable) {
       CommonTable commonTable = (CommonTable) queryable;
-      builder.withCollectionName(commonTable.getTableMetadata().getName());
+      builder.withCollectionName(commonTable.getTableMetadata().getValue());
     } else if (queryable instanceof SelectorTable) {
       SelectorTable selectorTable = (SelectorTable) queryable;
       SearchBuilderProxy annBuilder = new SearchBuilderProxy(true);
@@ -468,7 +468,7 @@ public class MilvusQuerier implements DataQuerier {
     } else if (function.getName().equals(RESERVED_FUNC_VMATCH)) {
       VMatch vMatch = (VMatch) function;
       builder.withVector(vMatch.getVectorName(), vMatch.getMetricType(),
-          vMatch.getVectorArray());
+          vMatch.getVectors());
     } else if (function.getName().equals(RESERVED_FUNC_CONSISTENCYLEVEL)) {
       ConsistencyLevel consistencyLevel = (ConsistencyLevel) function;
       builder.withConsistencyLevel(consistencyLevel.getConsistencyLevel());

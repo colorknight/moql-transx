@@ -40,9 +40,10 @@ public class MilvusTest {
   @Test
   public void query1() throws IOException {
     String collection  = "hybrid_search_collection";
-    String sql = "select * from hybrid_search_collection where id in (1,2,3) limit 0,5, (select * from hybrid_search_collection " +
-        "where vmatch(dense, L2, [[1.0, 2.0, 3.0],[1.1,2.1,3.1]])) b, (select" +
-        " * from hybrid_search_collection where vmatch (sparse, IP, [[4286132664:0.1764169], [2908500734:0.1764169]])) c";
+    String sql = "select * from hybrid_search_collection a, "
+        + "(select * from hybrid_search_collection where vmatch(dense, 'L2', '[[1.0, 2.0, 3.0],[1.1,2.1,3.1]]')) b, "
+        + "(select * from hybrid_search_collection where vmatch(sparse, 'IP', '[{\"4286132664\":0.1764169}, {\"2908500734\":0.1764169}]')) c "
+        + " limit 5";
 
     LoadCollectionReq loadCollectionReq = LoadCollectionReq.builder()
         .collectionName(collection)

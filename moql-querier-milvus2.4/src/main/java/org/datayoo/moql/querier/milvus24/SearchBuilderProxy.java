@@ -8,6 +8,7 @@ import io.milvus.v2.service.vector.request.HybridSearchReq;
 import io.milvus.v2.service.vector.request.QueryReq;
 import io.milvus.v2.service.vector.request.SearchReq;
 import io.milvus.v2.service.vector.request.ranker.BaseRanker;
+import io.milvus.v2.service.vector.request.ranker.RRFRanker;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -151,6 +152,7 @@ public class SearchBuilderProxy {
     search = true;
     hybird = true;
     annSearchReqs.add(annSearchReq);
+    hybirdSearchParamBuilder.ranker(new RRFRanker(60));
     return this;
   }
 
@@ -229,6 +231,9 @@ public class SearchBuilderProxy {
     searchParamBuilder.topK(topK);
     queryParamBuilder.limit((long) topK);
     hybirdSearchParamBuilder.topK(topK);
+    for (AnnSearchReq annSearchReq : annSearchReqs) {
+      annSearchReq.setTopK(topK);
+    }
     if (annSearchParamBuilder != null) {
       annSearchParamBuilder.topK(topK);
     }

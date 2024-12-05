@@ -27,7 +27,7 @@
         <dependency>
             <groupId>io.milvus</groupId>
             <artifactId>milvus-sdk-java</artifactId>
-            <version>2.4.4</version>
+            <version>2.4.8</version>
         </dependency>
         <dependency>
             <groupId>org.datayoo.moql</groupId>
