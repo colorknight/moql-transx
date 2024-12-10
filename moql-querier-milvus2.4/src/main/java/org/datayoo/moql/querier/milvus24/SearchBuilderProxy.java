@@ -112,9 +112,11 @@ public class SearchBuilderProxy {
     search = true;
     searchParamMap.put("metric_type", metricType.name());
     searchParamBuilder.annsField(vectorFieldName);
-    annSearchParamBuilder.vectorFieldName(vectorFieldName);
     searchParamBuilder.data(vectors);
-    annSearchParamBuilder.vectors(vectors);
+    if (annSearchParamBuilder != null) {
+      annSearchParamBuilder.vectorFieldName(vectorFieldName);
+      annSearchParamBuilder.vectors(vectors);
+    }
     return this;
   }
 
