@@ -293,24 +293,11 @@ public class EsDataQuerier implements DataQuerier {
       SupplementReader supplementReader) {
     JsonParser jsonParser = new JsonParser();
     JsonObject root = (JsonObject) jsonParser.parse(data);
-    Operand[] operands = buildColumnOperands(selectorDefinition);
-    for (int i = 0; i < operands.length; i++) {
-      Operand operand  = operands[i];
-      if ("doc_count".equals(operand.getName())) {
-        Long totals =
-            root.get("hits").getAsJsonObject().get("total").getAsJsonObject().get("value").getAsLong();
-        RecordSetImpl recordSet = SelectorDefinitionUtils.createRecordSet(
-            selectorDefinition);
-        List<Object[]> records = recordSet.getRecords();
-        records.add(new Object[]{totals});
-        return recordSet;
-      }
-    }
     if (supplementReader != null)
       supplementReader.read(root);
     JsonObject aggHits = (JsonObject) root.get("aggregations");
     if (aggHits != null) {
-      return toAggregationRecordSet(aggHits, selectorDefinition);
+      return toAggregationRecordSet(root, aggHits, selectorDefinition);
     } else {
       JsonObject hits = (JsonObject) root.get("hits");
       return toQueryRecordSet(hits, selectorDefinition);
@@ -322,6 +309,12 @@ public class EsDataQuerier implements DataQuerier {
     RecordSetImpl recordSet = SelectorDefinitionUtils.createRecordSet(
         selectorDefinition);
     Operand[] operands = buildColumnOperands(selectorDefinition);
+    if (operands.length == 1 && operands[0].getName().equals("doc_count")) {
+      Object[] record = new Object[1];
+      record[0] = jsonObject.getAsJsonObject("total").get("value").getAsLong();
+      recordSet.getRecords().add(record);
+      return recordSet;
+    }
     JsonArray hitArray = jsonObject.getAsJsonArray("hits");
     List<Object[]> records = recordSet.getRecords();
     for (int i = 0; i < hitArray.size(); i++) {
@@ -333,20 +326,49 @@ public class EsDataQuerier implements DataQuerier {
     return recordSet;
   }
 
-  protected RecordSet toAggregationRecordSet(JsonObject jsonObject,
+  protected RecordSet toAggregationRecordSet(JsonObject root, JsonObject aggs,
       SelectorDefinition selectorDefinition) {
     RecordSetImpl recordSet = SelectorDefinitionUtils.createRecordSet(
         selectorDefinition);
     Operand[] operands = buildColumnOperands(selectorDefinition);
-
-    List<Object[]> records = recordSet.getRecords();
-    List<EntityMap> entityMaps = toAggregationEntityMaps(jsonObject,
-        recordSet.getRecordSetDefinition().getGroupColumns());
-    for (EntityMap entityMap : entityMaps) {
-      Object[] record = toRecord(operands, entityMap);
-      records.add(record);
+    if (recordSet.getRecordSetDefinition().getGroupColumns().size() > 0) {
+      List<Object[]> records = recordSet.getRecords();
+      List<EntityMap> entityMaps = toAggregationEntityMaps(aggs,
+          recordSet.getRecordSetDefinition().getGroupColumns());
+      for (EntityMap entityMap : entityMaps) {
+        Object[] record = toRecord(operands, entityMap);
+        records.add(record);
+      }
+    } else {
+      toAggregationRecordSet(root, aggs, operands, recordSet);
     }
     return recordSet;
+  }
+
+  protected void toAggregationRecordSet(JsonObject root, JsonObject aggs,
+      Operand[] operands, RecordSetImpl recordSet) {
+    Object[] record = new Object[operands.length];
+    int i = 0;
+    EntityMap entityMap = toAggregationEntityMap(aggs);
+    for (Operand operand : operands) {
+      if (operand.getName().equals("doc_count")) {
+        record[i++] = root.getAsJsonObject("hits").getAsJsonObject("total")
+            .get("value").getAsLong();
+      } else {
+        record[i++] = operand.operate(entityMap);
+      }
+    }
+    recordSet.getRecords().add(record);
+  }
+
+  protected EntityMap toAggregationEntityMap(JsonObject jsonObject) {
+    EntityMap entityMap = new EntityMapImpl();
+    for (Map.Entry<String, JsonElement> entry : jsonObject.entrySet()) {
+      String key = entry.getKey();
+      JsonObject jo = (JsonObject) entry.getValue();
+      entityMap.putEntity(key, jo.get("value").getAsDouble());
+    }
+    return entityMap;
   }
 
   protected Operand[] buildColumnOperands(
