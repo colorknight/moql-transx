@@ -104,6 +104,7 @@ public class ElasticSearchTranslator implements SqlTranslator {
   protected void translate2Aggs(SelectorImpl selector, JsonObject jsonObject,
       Map<String, Object> translationContext) {
     jsonObject.addProperty("size", 0);
+    jsonObject.addProperty("track_total_hits", true);
     translate2CommonQuery(selector, jsonObject, translationContext);
     translate2Aggregations(selector, jsonObject, translationContext);
   }
@@ -406,6 +407,9 @@ public class ElasticSearchTranslator implements SqlTranslator {
       ColumnsRecordSetOperator columnsRecordSetOperator, JsonObject jsonObject,
       Map<String, Object> translationContext) {
     for (Column column : columnsRecordSetOperator.getColumns().getColumns()) {
+      if ("count".equals(column.getOperand().getName())) {
+        continue;
+      }
       JsonObject aggsObject = new JsonObject();
       jsonObject.add("aggs", aggsObject);
       if (column.getOperand() instanceof AggregationFunction) {

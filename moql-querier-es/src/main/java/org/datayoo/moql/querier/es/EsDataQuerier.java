@@ -133,21 +133,23 @@ public class EsDataQuerier implements DataQuerier {
     ColumnsMetadata columnsMetadata = metadata.getColumns();
     List<ColumnMetadata> columns = columnsMetadata.getColumns();
     for (int i = 0; i < columns.size(); i++) {
-      if (columns.get(i).getName().endsWith("*")) {
-        columns.remove(i);
-        Properties indexNameMappings = (Properties) properties.get(
-            INDEX_NAME_MAPPINGS);
-        String indexName;
-        if (indexNameMappings == null) {
-          indexName = indexAndTables.get(0);
-        } else {
-          indexName = indexNameMappings.getProperty(indexAndTables.get(0));
-        }
-        List<ColumnMetadata> indexColumnsMetadata = getIndexColumnsMetadata(
-            indexName);
-        for (int j = indexColumnsMetadata.size() - 1; j >= 0; j--) {
-          ColumnMetadata columnMetadata = indexColumnsMetadata.get(j);
-          columns.add(i, columnMetadata);
+      if (columns.get(i) != null) {
+        if (columns.get(i).getName().endsWith("*")) {
+          columns.remove(i);
+          Properties indexNameMappings = (Properties) properties.get(
+              INDEX_NAME_MAPPINGS);
+          String indexName;
+          if (indexNameMappings == null) {
+            indexName = indexAndTables.get(0);
+          } else {
+            indexName = indexNameMappings.getProperty(indexAndTables.get(0));
+          }
+          List<ColumnMetadata> indexColumnsMetadata = getIndexColumnsMetadata(
+              indexName);
+          for (int j = indexColumnsMetadata.size() - 1; j >= 0; j--) {
+            ColumnMetadata columnMetadata = indexColumnsMetadata.get(j);
+            columns.add(i, columnMetadata);
+          }
         }
       }
     }
@@ -291,6 +293,19 @@ public class EsDataQuerier implements DataQuerier {
       SupplementReader supplementReader) {
     JsonParser jsonParser = new JsonParser();
     JsonObject root = (JsonObject) jsonParser.parse(data);
+    Operand[] operands = buildColumnOperands(selectorDefinition);
+    for (int i = 0; i < operands.length; i++) {
+      Operand operand  = operands[i];
+      if ("doc_count".equals(operand.getName())) {
+        Long totals =
+            root.get("hits").getAsJsonObject().get("total").getAsJsonObject().get("value").getAsLong();
+        RecordSetImpl recordSet = SelectorDefinitionUtils.createRecordSet(
+            selectorDefinition);
+        List<Object[]> records = recordSet.getRecords();
+        records.add(new Object[]{totals});
+        return recordSet;
+      }
+    }
     if (supplementReader != null)
       supplementReader.read(root);
     JsonObject aggHits = (JsonObject) root.get("aggregations");
